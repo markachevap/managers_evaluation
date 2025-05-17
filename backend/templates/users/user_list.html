@@ -1,0 +1,41 @@
+{% extends "base/base.html" %}
+{% load static %}
+{% block content %}
+<div class="container">
+    <h1 class="my-4">Список пользователей</h1>
+    <a href="{% url 'users:user-create' %}" class="btn btn-primary mb-3">Добавить пользователя</a>
+    <div class="row mb-3">
+    <div class="col-md-6">
+        <input type="text" class="form-control" placeholder="Поиск..." id="searchInput">
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="?sort=name" class="btn btn-sm btn-outline-secondary">Сортировать по имени</a>
+    </div>
+</div>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ФИО</th>
+                <th>Email</th>
+                <th>Роль</th>
+                <th>Дата приема</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in object_list %}
+            <tr>
+                <td>{{ user.get_full_name }}</td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.get_role_display }}</td>
+                <td>{{ user.hire_date|date:"d.m.Y" }}</td>
+                <td>
+                    <a href="{% url 'users:user-detail' user.pk %}" class="btn btn-sm btn-info">Подробнее</a>
+                    <a href="{% url 'users:user-update' user.pk %}" class="btn btn-sm btn-warning">Редактировать</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

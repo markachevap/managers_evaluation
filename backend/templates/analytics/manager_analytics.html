@@ -1,0 +1,200 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Ваша персональная аналитика</h1>
+        <div class="badge bg-primary text-white p-2">
+            {% now "F Y" %}
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- График динамики оценок -->
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center bg-white">
+                    <h6 class="m-0 font-weight-bold text-primary">Динамика ваших оценок</h6>
+                    <div class="dropdown no-arrow">
+                        <a class="dropdown-toggle" href="#" role="button" id="chartDropdown" data-bs-toggle="dropdown">
+                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end shadow">
+                            <a class="dropdown-item" href="#">Экспорт в PDF</a>
+                            <a class="dropdown-item" href="#">Поделиться</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-area">
+                        <canvas id="progressChart" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Рекомендации -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3 bg-white">
+                    <h6 class="m-0 font-weight-bold text-primary">Рекомендации по улучшению</h6>
+                </div>
+                <div class="card-body">
+                    {% if improvement_suggestions.suggestions %}
+                    <div class="alert alert-info mb-4">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        <strong>Совет:</strong> Сосредоточьтесь на 1-2 критериях для максимального эффекта
+                    </div>
+
+                    <div class="list-group list-group-flush">
+                        {% for suggestion in improvement_suggestions.suggestions %}
+                        <div class="list-group-item list-group-item-action d-flex align-items-start">
+                            <div class="me-3 text-primary">
+                                <i class="fas fa-arrow-circle-up fa-lg"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">{{ suggestion|slice:":50" }}...</h6>
+                                <small class="text-muted">Приоритет: {% cycle "Высокий" "Средний" "Низкий" %}</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                        <h5>Отличная работа!</h5>
+                        <p class="text-muted">Все показатели в норме</p>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-white">
+                    <a href="#" class="btn btn-sm btn-outline-primary">Подробный анализ</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Дополнительные метрики -->
+    <div class="row mt-4">
+        <div class="col-md-4 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col me-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Текущая оценка
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ current_score|default:"-"|floatformat:2 }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-star fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col me-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Прогресс за месяц
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {% if evaluations.count >= 2 %}
+                                    {% with delta=evaluations.last.total_score|sub:evaluations.first.total_score %}
+                                        {{ delta|floatformat:2 }}
+                                        <small class="text-{% if delta > 0 %}success{% else %}danger{% endif %}">
+                                            ({% if delta > 0 %}+{% endif %}{{ delta|floatformat:2 }})
+                                        </small>
+                                    {% endwith %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col me-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Позиция в рейтинге
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ rank_position|default:"-" }} из {{ total_managers|default:"-" }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-trophy fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Инициализация графика прогресса
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('progressChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: {{ chart_data.labels|safe }},
+                datasets: [
+                    {% for dataset in chart_data.datasets %}
+                    {
+                        label: '{{ dataset.label }}',
+                        data: {{ dataset.data }},
+                        borderColor: '{{ dataset.borderColor }}',
+                        backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: true
+                    },
+                    {% endfor %}
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 10,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

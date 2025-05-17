@@ -1,0 +1,119 @@
+{% extends "base/base.html" %}
+{% load static humanize %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-chart-line me-2"></i>Ваша аналитика
+        </h1>
+        <span class="badge bg-primary">
+            {% now "F Y" %}
+        </span>
+    </div>
+
+    <div class="row">
+        <!-- Карточка с графиком -->
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-line me-1"></i> Динамика оценок
+                    </h6>
+                    <div class="dropdown no-arrow">
+                        <a class="dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end shadow">
+                            <a class="dropdown-item" href="#">Экспорт в PDF</a>
+                            <a class="dropdown-item" href="#">Поделиться</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas
+                        id="scoreChart"
+                        data-chart='{
+                            "type": "line",
+                            "data": {
+                                "labels": {{ evaluation_dates|safe }},
+                                "datasets": [{
+                                    "label": "Ваши оценки",
+                                    "data": {{ evaluation_scores|safe }},
+                                    "borderColor": "#4e73df",
+                                    "backgroundColor": "rgba(78, 115, 223, 0.05)",
+                                    "borderWidth": 2,
+                                    "pointRadius": 3,
+                                    "pointBackgroundColor": "#4e73df",
+                                    "tension": 0.3,
+                                    "fill": true
+                                }]
+                            },
+                            "options": {
+                                "scales": {
+                                    "y": {"beginAtZero": true, "max": 10}
+                                }
+                            }
+                        }'
+                        height="300">
+                    </canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Карточка с метриками -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-tachometer-alt me-1"></i> Ключевые показатели
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-12 mb-4">
+                            <div class="card border-left-{% if score_diff >= 0 %}success{% else %}danger{% endif %} shadow h-100">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-3">
+                                            <i class="fas fa-arrow-{% if score_diff >= 0 %}up text-success{% else %}down text-danger{% endif %} fa-2x"></i>
+                                        </div>
+                                        <div>
+                                            <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                                Изменение оценки
+                                            </div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                {% if score_diff > 0 %}+{% endif %}{{ score_diff|floatformat:2 }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="card border-left-info shadow h-100">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-3">
+                                            <i class="fas fa-trophy fa-2x text-warning"></i>
+                                        </div>
+                                        <div>
+                                            <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                                Позиция в рейтинге
+                                            </div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                #{{ rank }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

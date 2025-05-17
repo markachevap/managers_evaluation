@@ -1,0 +1,50 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container">
+    <div class="text-center mb-5">
+        <h1 class="display-4">Добро пожаловать, {% firstof user.get_full_name user.email %}!</h1>
+        <p class="lead">Система оценки эффективности менеджеров</p>
+    </div>
+
+    <div class="row g-4">
+        <!-- Для руководителей -->
+        {% if user.system_role == 'system_leader' %}
+        <div class="col-md-4">
+            <div class="card h-100 border-primary">
+                <div class="card-body text-center">
+                    <i class="bi bi-people-fill display-4 text-primary mb-3"></i>
+                    <h3>Пользователи</h3>
+                    <p>Управление учетными записями сотрудников</p>
+                    <a href="{% url 'users:user-list' %}" class="btn btn-primary stretched-link">Перейти</a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Общие элементы -->
+        <div class="col-md-4">
+            <div class="card h-100 border-success">
+                <div class="card-body text-center">
+                    <i class="bi bi-clipboard-data display-4 text-success mb-3"></i>
+                    <h3>{% if user.system_role == 'system_leader' %}Оценки{% else %}Мои оценки{% endif %}</h3>
+                    <p>Просмотр и анализ оценок</p>
+                    <a href="{% url 'evaluations:evaluation-list' %}" class="btn btn-success stretched-link">Перейти</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100 border-info">
+                <div class="card-body text-center">
+                    <i class="bi bi-graph-up display-4 text-info mb-3"></i>
+                    <h3>Аналитика</h3>
+                    <p>Детальная статистика и отчеты</p>
+                    <a href="{% url 'analytics:leader-analytics' %}" class="btn btn-info stretched-link">Перейти</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

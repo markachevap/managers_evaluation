@@ -1,0 +1,62 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container">
+    <h1 class="my-4">Статистика менеджера: {{ manager.get_full_name }}</h1>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4>Динамика оценок</h4>
+                </div>
+                <div class="card-body">
+                    <canvas id="scoreChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Средние оценки по критериям</h4>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group">
+                        {% for stat in criteria_stats %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ stat.criteria.name }}
+                            <span class="badge bg-primary rounded-pill">
+                                {{ stat.avg_score|floatformat:2 }}
+                            </span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('scoreChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [{% for eval in evaluations %}"{{ eval.evaluation_date|date:'Y-m-d' }}"{% if not forloop.last %}, {% endif %}{% endfor %}],
+                datasets: [{
+                    label: 'Общая оценка',
+                    data: [{% for eval in evaluations %}{{ eval.total_score }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1
+                }]
+            }
+        });
+    });
+</script>
+{% endblock %}

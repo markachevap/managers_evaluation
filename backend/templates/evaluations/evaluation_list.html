@@ -1,0 +1,207 @@
+{% extends "base/base.html" %}
+{% load static humanize %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="card shadow-lg">
+        <div class="card-header bg-white py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="h4 mb-0 text-gray-800">
+                    <i class="fas fa-clipboard-list me-2"></i>История оценок
+                </h1>
+                <div class="btn-group">
+                    <a href="{% url 'evaluations:evaluation-create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i> Новая оценка
+                    </a>
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-filter me-1"></i> Фильтры
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="?status=all">Все оценки</a></li>
+                        <li><a class="dropdown-item" href="?status=recent">Последние 30 дней</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="?sort=date">Сортировать по дате</a></li>
+                        <li><a class="dropdown-item" href="?sort=score">Сортировать по баллам</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" placeholder="Поиск по менеджеру..." id="searchInput">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <select class="form-select" id="managerFilter">
+                        <option value="">Все менеджеры</option>
+                        {% for manager in managers %}
+                        <option value="{{ manager.id }}" {% if request.GET.manager == manager.id|stringformat:"s" %}selected{% endif %}>
+                            {{ manager.get_full_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <input type="month" class="form-control" id="monthFilter" value="{{ request.GET.month }}">
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="thead-light">
+                        <tr>
+                            <th width="25%">Менеджер</th>
+                            <th width="15%">Дата оценки</th>
+                            <th width="20%">Период</th>
+                            <th width="15%">Общий балл</th>
+                            <th width="15%">Оценщик</th>
+                            <th width="10%"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for evaluation in object_list %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-sm me-3">
+                                        <span class="avatar-title rounded-circle bg-primary text-white">
+                                            {{ evaluation.manager.get_full_name|first }}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0">{{ evaluation.manager.get_full_name }}</h6>
+                                        <small class="text-muted">{{ evaluation.manager.position }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ evaluation.evaluation_date|date:"d.m.Y" }}</td>
+                            <td>
+                                {{ evaluation.period_start|date:"d.m.Y" }}<br>
+                                <small class="text-muted">по {{ evaluation.period_end|date:"d.m.Y" }}</small>
+                            </td>
+                            <td>
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar bg-{% if evaluation.total_score >= 7 %}success{% elif evaluation.total_score >= 4 %}warning{% else %}danger{% endif %}"
+                                         style="width: {{ evaluation.total_score }}%">
+                                        {{ evaluation.total_score|floatformat:1 }}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if evaluation.evaluator %}
+                                <small>{{ evaluation.evaluator.get_full_name }}</small>
+                                {% else %}
+                                <span class="text-muted">Система</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'evaluations:evaluation-detail' evaluation.pk %}"
+                                       class="btn btn-outline-info"
+                                       data-bs-toggle="tooltip"
+                                       title="Подробнее">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'evaluations:evaluation-update' evaluation.pk %}"
+                                       class="btn btn-outline-warning"
+                                       data-bs-toggle="tooltip"
+                                       title="Редактировать">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5">
+                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                <h5>Оценки не найдены</h5>
+                                <a href="{% url 'evaluations:evaluation-create' %}" class="btn btn-primary mt-3">
+                                    <i class="fas fa-plus me-1"></i> Создать первую оценку
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if is_paginated %}
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <div class="text-muted">
+                    Показано с {{ page_obj.start_index }} по {{ page_obj.end_index }} из {{ paginator.count }}
+                </div>
+                <ul class="pagination mb-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1">&laquo;</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">&lsaquo;</a>
+                    </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">&rsaquo;</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ paginator.num_pages }}">&raquo;</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Инициализация всплывающих подсказок
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Поиск по таблице
+    document.getElementById('searchInput').addEventListener('keyup', function() {
+        const value = this.value.toLowerCase();
+        document.querySelectorAll('tbody tr').forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(value) ? '' : 'none';
+        });
+    });
+
+    // Фильтрация по менеджеру
+    document.getElementById('managerFilter').addEventListener('change', function() {
+        const managerId = this.value;
+        window.location.href = `?manager=${managerId}`;
+    });
+
+    // Фильтрация по месяцу
+    document.getElementById('monthFilter').addEventListener('change', function() {
+        const month = this.value;
+        window.location.href = `?month=${month}`;
+    });
+});
+</script>
+{% endblock %}

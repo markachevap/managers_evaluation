@@ -1,0 +1,61 @@
+{% extends "base/base.html" %}
+{% load static %}
+{% block content %}
+<div class="container">
+    <h1 class="my-4">Профиль пользователя</h1>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h3>{{ object.get_full_name }}</h3>
+                    <p><strong>Email:</strong> {{ object.email }}</p>
+                    <p><strong>Должность:</strong> {{ object.position }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Роль:</strong> {{ object.get_role_display }}</p>
+                    <p><strong>Дата приема:</strong> {{ object.hire_date|date:"d.m.Y" }}</p>
+                    <p><strong>Последний вход:</strong> {{ object.last_login|date:"d.m.Y H:i" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if user_evaluations %}
+    <div class="card">
+        <div class="card-header">
+            Последние оценки
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Дата</th>
+                            <th>Период</th>
+                            <th>Общий балл</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for eval in user_evaluations %}
+                        <tr>
+                            <td>{{ eval.evaluation_date|date:"d.m.Y" }}</td>
+                            <td>{{ eval.period_start|date:"d.m.Y" }} - {{ eval.period_end|date:"d.m.Y" }}</td>
+                            <td>{{ eval.total_score|floatformat:2 }}</td>
+                            <td>
+                                <a href="{% url 'evaluations:evaluation-detail' eval.pk %}"
+                                   class="btn btn-sm btn-outline-info">
+                                    Подробнее
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

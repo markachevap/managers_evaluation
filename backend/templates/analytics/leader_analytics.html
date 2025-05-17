@@ -1,0 +1,299 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Аналитика для руководителя</h1>
+        <div class="dropdown">
+            <button class="btn btn-outline-primary dropdown-toggle" type="button" id="periodDropdown"
+                    data-bs-toggle="dropdown" aria-expanded="false">
+                {% now "F Y" %}
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="periodDropdown">
+                <li><a class="dropdown-item" href="#">Последний месяц</a></li>
+                <li><a class="dropdown-item" href="#">Квартал</a></li>
+                <li><a class="dropdown-item" href="#">Год</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Карточки с метриками -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col me-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Всего менеджеров
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ total_managers }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col me-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Средняя оценка
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ avg_score|floatformat:2 }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-star fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col me-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Лучший менеджер
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ top_manager.get_full_name|default:"-" }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-trophy fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col me-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Оценок за период
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ evaluations_count }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Топ менеджеров -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center bg-white">
+                    <h6 class="m-0 font-weight-bold text-primary">Топ-5 менеджеров</h6>
+                    <a href="{% url 'analytics:comparison-analytics' %}" class="btn btn-sm btn-outline-primary">
+                        Сравнить всех
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Менеджер</th>
+                                    <th>Оценка</th>
+                                    <th>Изменение</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for manager in managers %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-sm me-3">
+                                                <span class="avatar-title rounded-circle bg-primary text-white">
+                                                    {{ manager.get_full_name|first }}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <h6 class="mb-0">{{ manager.get_full_name }}</h6>
+                                                <small class="text-muted">{{ manager.position }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="font-weight-bold">{{ manager.last_score|floatformat:2 }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if manager.score_diff >= 0 %}success{% else %}danger{% endif %}">
+                                            {% if manager.score_diff > 0 %}+{% endif %}{{ manager.score_diff|floatformat:2 }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <a href="#" class="btn btn-sm btn-outline-secondary">Профиль</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Средние оценки по критериям -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3 bg-white">
+                    <h6 class="m-0 font-weight-bold text-primary">Средние оценки по критериям</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-bar">
+                        <canvas id="criteriaChart" height="300"></canvas>
+                    </div>
+                    <div class="mt-4">
+                        <h6 class="font-weight-bold">Ключевые выводы:</h6>
+                        <ul class="list-unstyled">
+                            {% for stat in criteria_stats|slice:":3" %}
+                            <li class="mb-2">
+                                <i class="fas fa-arrow-{% if stat.avg_score >= 7 %}up text-success{% else %}down text-danger{% endif %} me-2"></i>
+                                {{ stat.criteria.name }}: {{ stat.avg_score|floatformat:2 }}
+                                <small class="text-muted">({{ stat.criteria.description|truncatechars:30 }})</small>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Дополнительные графики -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 bg-white">
+                    <h6 class="m-0 font-weight-bold text-primary">Динамика оценок по месяцам</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-area">
+                        <canvas id="performanceTrendChart" height="100"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // График средних оценок по критериям
+        const ctx = document.getElementById('criteriaChart');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: [
+                    {% for stat in criteria_stats %}
+                    "{{ stat.criteria.name|truncatechars:15 }}"{% if not forloop.last %},{% endif %}
+                    {% endfor %}
+                ],
+                datasets: [{
+                    label: 'Средняя оценка',
+                    data: [
+                        {% for stat in criteria_stats %}
+                        {{ stat.avg_score|floatformat:2 }}{% if not forloop.last %},{% endif %}
+                        {% endfor %}
+                    ],
+                    backgroundColor: [
+                        {% for stat in criteria_stats %}
+                        'hsl({{ forloop.counter0|mul:30 }}, 70%, 50%)'{% if not forloop.last %},{% endif %}
+                        {% endfor %}
+                    ],
+                    borderColor: [
+                        {% for stat in criteria_stats %}
+                        'hsl({{ forloop.counter0|mul:30 }}, 70%, 40%)'{% if not forloop.last %},{% endif %}
+                        {% endfor %}
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.dataset.label}: ${context.raw.toFixed(2)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 10,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+
+        // График тренда производительности (пример)
+        const trendCtx = document.getElementById('performanceTrendChart');
+        new Chart(trendCtx, {
+            type: 'line',
+            data: {
+                labels: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн'],
+                datasets: [{
+                    label: 'Средняя оценка команды',
+                    data: [6.2, 6.5, 6.8, 7.1, 7.3, 7.5],
+                    borderColor: '#4e73df',
+                    backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 10
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

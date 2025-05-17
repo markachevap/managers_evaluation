@@ -1,0 +1,295 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Сравнение менеджеров</h1>
+        <div>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#compareModal">
+                <i class="fas fa-plus me-2"></i>Добавить менеджера
+            </button>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        {% for data in comparison_data %}
+        <div class="col-xl-4 col-lg-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center bg-white">
+                    <h5 class="m-0 font-weight-bold text-primary">{{ data.manager.get_full_name }}</h5>
+                    <span class="badge bg-{% if data.progress >= 0 %}success{% else %}danger{% endif %}">
+                        {% if data.progress > 0 %}+{% endif %}{{ data.progress|floatformat:2 }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <div class="position-relative d-inline-block">
+                            <div class="radial-progress" style="--value:{{ data.total_score|mul:10 }}; --size: 6rem;">
+                                <strong>{{ data.total_score|floatformat:1 }}</strong>
+                            </div>
+                            <div class="position-absolute top-100 start-50 translate-middle mt-2">
+                                <span class="badge bg-{% if data.rating_position <= 3 %}success{% else %}warning{% endif %}">
+                                    #{{ data.rating_position }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <h6 class="font-weight-bold mb-2">Сильные стороны:</h6>
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for criteria, score in data.criteria_scores.items %}
+                                {% if score >= 8 %}
+                                <span class="badge bg-success">{{ criteria|truncatechars:15 }}: {{ score }}</span>
+                                {% endif %}
+                            {% empty %}
+                                <span class="text-muted">Нет данных</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <h6 class="font-weight-bold mb-2">Слабые стороны:</h6>
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for criteria, score in data.criteria_scores.items %}
+                                {% if score < 6 %}
+                                <span class="badge bg-danger">{{ criteria|truncatechars:15 }}: {{ score }}</span>
+                                {% endif %}
+                            {% empty %}
+                                <span class="text-muted">Нет данных</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-white">
+                    <a href="#" class="btn btn-sm btn-outline-primary">Подробный отчет</a>
+                    <button class="btn btn-sm btn-outline-danger float-end remove-manager" data-manager-id="{{ data.manager.id }}">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 bg-white">
+                    <ul class="nav nav-tabs nav-justified" id="comparisonTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="radar-tab" data-bs-toggle="tab" data-bs-target="#radar" type="button">
+                                <i class="fas fa-chart-radar me-2"></i>Радар сравнения
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="trend-tab" data-bs-toggle="tab" data-bs-target="#trend" type="button">
+                                <i class="fas fa-chart-line me-2"></i>Динамика
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content" id="comparisonTabContent">
+                        <div class="tab-pane fade show active" id="radar" role="tabpanel">
+                            <canvas id="radarChart" height="300"></canvas>
+                        </div>
+                        <div class="tab-pane fade" id="trend" role="tabpanel">
+                            <canvas id="trendChart" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно выбора менеджеров -->
+<div class="modal fade" id="compareModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Выберите менеджеров для сравнения</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    {% for manager in all_managers %}
+                    <div class="col-md-6 mb-3">
+                        <div class="form-check card p-3">
+                            <input class="form-check-input" type="checkbox" value="{{ manager.id }}"
+                                   id="manager-{{ manager.id }}" {% if manager.id in selected_manager_ids %}checked{% endif %}>
+                            <label class="form-check-label d-flex align-items-center" for="manager-{{ manager.id }}">
+                                <div class="avatar me-3">
+                                    <span class="avatar-title rounded-circle bg-primary text-white">
+                                        {{ manager.get_full_name|first }}
+                                    </span>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">{{ manager.get_full_name }}</h6>
+                                    <small class="text-muted">{{ manager.position }}</small>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="applyComparison">Сравнить</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Радар сравнения
+        const radarCtx = document.getElementById('radarChart');
+        const radarChart = new Chart(radarCtx, {
+            type: 'radar',
+            data: {
+                labels: [
+                    {% for criteria in criterias %}
+                    "{{ criteria.name }}"{% if not forloop.last %},{% endif %}
+                    {% endfor %}
+                ],
+                datasets: [
+                    {% for data in comparison_data %}
+                    {
+                        label: '{{ data.manager.get_full_name }}',
+                        data: [
+                            {% for criteria in criterias %}
+                            {{ data.criteria_scores|get_item:criteria.name|default:0 }}{% if not forloop.last %},{% endif %}
+                            {% endfor %}
+                        ],
+                        backgroundColor: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.2)`,
+                        borderColor: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 1)`,
+                        borderWidth: 2,
+                        pointBackgroundColor: '#fff',
+                    },
+                    {% endfor %}
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    r: {
+                        angleLines: {
+                            display: true
+                        },
+                        suggestedMin: 0,
+                        suggestedMax: 10
+                    }
+                }
+            }
+        });
+
+        // График динамики
+        const trendCtx = document.getElementById('trendChart');
+        const trendChart = new Chart(trendCtx, {
+            type: 'line',
+            data: {
+                labels: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн'],
+                datasets: [
+                    {% for data in comparison_data %}
+                    {
+                        label: '{{ data.manager.get_full_name }}',
+                        data: [5.5, 6.0, 6.5, 7.0, 7.5, 8.0].map(x => x + Math.random()),
+                        borderColor: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 1)`,
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        tension: 0.1
+                    },
+                    {% endfor %}
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 10
+                    }
+                }
+            }
+        });
+
+        // Удаление менеджера из сравнения
+        document.querySelectorAll('.remove-manager').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const managerId = this.dataset.managerId;
+                window.location.href = `?managers=${[...new Set(
+                    [...document.querySelectorAll('input[type="checkbox"]:checked')]
+                        .filter(x => x.value !== managerId)
+                        .map(x => x.value)
+                    .join(',')}`;
+            });
+        });
+
+        // Применение выбора менеджеров
+        document.getElementById('applyComparison').addEventListener('click', function() {
+            const selected = [...document.querySelectorAll('input[type="checkbox"]:checked')]
+                .map(x => x.value)
+                .join(',');
+            window.location.href = `?managers=${selected}`;
+        });
+    });
+</script>
+
+<style>
+    .radial-progress {
+        --value: 0;
+        --size: 3rem;
+        --thickness: 6px;
+
+        width: var(--size);
+        height: var(--size);
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background:
+            radial-gradient(
+                circle closest-side,
+                transparent 80%,
+                transparent 0 99.9%,
+                white 0
+            ),
+            conic-gradient(
+                var(--primary) calc(var(--value)*1%),
+                var(--secondary) 0
+            );
+    }
+
+    .radial-progress::before {
+        content: "";
+        position: absolute;
+        border-radius: 50%;
+        inset: 0;
+        background: conic-gradient(
+            var(--primary) calc(var(--value)*1%),
+            var(--secondary) 0
+        );
+        -webkit-mask: radial-gradient(
+            circle closest-side,
+            transparent 80%,
+            #000 0
+        );
+        mask: radial-gradient(
+            circle closest-side,
+            transparent 80%,
+            #000 0
+        );
+    }
+
+    .radial-progress strong {
+        font-size: 1.5rem;
+        z-index: 1;
+    }
+</style>
+{% endblock %}

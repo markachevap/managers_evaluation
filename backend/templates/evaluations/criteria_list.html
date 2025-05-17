@@ -1,0 +1,142 @@
+{% extends "base/base.html" %}
+{% load static humanize %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="card shadow-lg">
+        <div class="card-header bg-white py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="h4 mb-0 text-gray-800">
+                    <i class="fas fa-list-alt me-2"></i> Критерии оценки
+                </h1>
+                <a href="{% url 'evaluations:criteria-create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i> Добавить
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <!-- Фильтры и поиск -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" placeholder="Поиск по названию..." id="searchInput">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="btn-group float-end">
+                        <a href="?sort=weight" class="btn btn-outline-secondary {% if request.GET.sort == 'weight' %}active{% endif %}">
+                            <i class="fas fa-sort-amount-down me-1"></i> По весу
+                        </a>
+                        <a href="?sort=name" class="btn btn-outline-secondary {% if request.GET.sort == 'name' %}active{% endif %}">
+                            <i class="fas fa-sort-alpha-down me-1"></i> По названию
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Информация о весах -->
+            <div class="alert alert-info mb-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-info-circle me-2"></i>
+                        Общий вес активных критериев: <strong>{{ total_weight|floatformat:2 }}</strong>/1.00
+                    </div>
+                    {% if total_weight >= 1 %}
+                    <span class="badge bg-danger">
+                        <i class="fas fa-exclamation-triangle me-1"></i> Превышено!
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Таблица -->
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="thead-light">
+                        <tr>
+                            <th width="40%">Название</th>
+                            <th width="20%">Тип</th>
+                            <th width="20%">Вес</th>
+                            <th width="10%">Статус</th>
+                            <th width="10%"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for criteria in object_list %}
+                        <tr>
+                            <td>
+                                <h6 class="mb-1">{{ criteria.name }}</h6>
+                                <small class="text-muted">{{ criteria.description|truncatechars:50 }}</small>
+                            </td>
+                            <td>{{ criteria.get_criteria_type_display }}</td>
+                            <td>
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar bg-{% if criteria.is_active %}success{% else %}warning{% endif %}"
+                                         style="width: {{ criteria.weight }}%">
+                                        {{ criteria.weight|floatformat:2 }}
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-{% if criteria.is_active %}success{% else %}secondary{% endif %}">
+                                    {% if criteria.is_active %}Активен{% else %}Неактивен{% endif %}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'evaluations:criteria-update' criteria.pk %}"
+                                       class="btn btn-outline-warning"
+                                       data-bs-toggle="tooltip"
+                                       title="Редактировать">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'evaluations:criteria-delete' criteria.pk %}"
+                                       class="btn btn-outline-danger"
+                                       data-bs-toggle="tooltip"
+                                       title="Удалить">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4">
+                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                <h5>Нет критериев оценки</h5>
+                                <a href="{% url 'evaluations:criteria-create' %}" class="btn btn-primary mt-2">
+                                    <i class="fas fa-plus me-1"></i> Создать первый критерий
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script>
+// Инициализация всплывающих подсказок
+document.addEventListener('DOMContentLoaded', function() {
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Поиск по таблице
+    document.getElementById('searchInput').addEventListener('keyup', function() {
+        const value = this.value.toLowerCase();
+        document.querySelectorAll('tbody tr').forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(value) ? '' : 'none';
+        });
+    });
+});
+</script>
+{% endblock %}

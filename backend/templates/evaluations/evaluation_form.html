@@ -1,0 +1,148 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="card shadow-lg">
+        <div class="card-header bg-white py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="h4 mb-0 text-gray-800">
+                    <i class="fas fa-{% if object %}edit{% else %}plus-circle{% endif %} me-2"></i>
+                    {% if object %}Редактирование{% else %}Создание{% endif %} оценки
+                </h1>
+                <a href="{% if object %}{% url 'evaluations:evaluation-detail' object.pk %}{% else %}{% url 'evaluations:evaluation-list' %}{% endif %}"
+                   class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i> Назад
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <form method="post" novalidate>
+                {% csrf_token %}
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card border-light h-100">
+                            <div class="card-header bg-light">
+                                <h6 class="m-0 font-weight-bold">
+                                    <i class="fas fa-user-tie me-2"></i>Основные данные
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    {{ form.manager.label_tag }}
+                                    {{ form.manager }}
+                                    <div class="invalid-feedback">
+                                        Пожалуйста, выберите менеджера.
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        {{ form.evaluation_date.label_tag }}
+                                        {{ form.evaluation_date }}
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        {{ form.period_start.label_tag }}
+                                        {{ form.period_start }}
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        {{ form.period_end.label_tag }}
+                                        {{ form.period_end }}
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    {{ form.notes.label_tag }}
+                                    {{ form.notes }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card border-light h-100">
+                            <div class="card-header bg-light">
+                                <h6 class="m-0 font-weight-bold">
+                                    <i class="fas fa-tasks me-2"></i>Оценки по критериям
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                {{ formset.management_form }}
+                                <div class="row g-3">
+                                    {% for form in formset %}
+                                    <div class="col-md-6">
+                                        <div class="card h-100 border-{% if form.value.errors %}danger{% else %}secondary{% endif %}">
+                                            <div class="card-header py-2">
+                                                <h6 class="mb-0">
+                                                    {{ form.instance.criteria.name }}
+                                                    <small class="float-end text-muted">
+                                                        Вес: {{ form.instance.criteria.weight|floatformat:2 }}
+                                                    </small>
+                                                </h6>
+                                            </div>
+                                            <div class="card-body">
+                                                {{ form.id }}
+                                                {{ form.criteria }}
+
+                                                <div class="mb-3">
+                                                    {{ form.value.label_tag }}
+                                                    <div class="input-group">
+                                                        {{ form.value }}
+                                                        <span class="input-group-text">/10</span>
+                                                    </div>
+                                                    {% if form.value.errors %}
+                                                    <div class="invalid-feedback d-block">
+                                                        {{ form.value.errors|join:", " }}
+                                                    </div>
+                                                    {% endif %}
+                                                </div>
+
+                                                <div class="mb-0">
+                                                    {{ form.comment.label_tag }}
+                                                    {{ form.comment }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Сохранить
+                    </button>
+                    <a href="{% if object %}{% url 'evaluations:evaluation-detail' object.pk %}{% else %}{% url 'evaluations:evaluation-list' %}{% endif %}"
+                       class="btn btn-secondary">
+                        <i class="fas fa-times me-1"></i> Отмена
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script>
+// Инициализация datepicker
+document.addEventListener('DOMContentLoaded', function() {
+    // Валидация дат
+    const periodStart = document.getElementById('{{ form.period_start.id_for_label }}');
+    const periodEnd = document.getElementById('{{ form.period_end.id_for_label }}');
+
+    periodEnd.addEventListener('change', function() {
+        if (new Date(periodStart.value) > new Date(this.value)) {
+            this.setCustomValidity('Конец периода должен быть после начала');
+        } else {
+            this.setCustomValidity('');
+        }
+    });
+});
+</script>
+{% endblock %}

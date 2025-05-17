@@ -1,0 +1,101 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="card shadow-lg">
+        <div class="card-header bg-white py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="h4 mb-0 text-gray-800">
+                    <i class="fas fa-{% if object %}edit{% else %}plus-circle{% endif %} me-2"></i>
+                    {% if object %}Редактирование{% else %}Создание{% endif %} критерия
+                </h1>
+                <a href="{% url 'evaluations:criteria-list' %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i> Назад
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <form method="post" class="needs-validation" novalidate>
+                {% csrf_token %}
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form.name.label_tag }}
+                            {{ form.name }}
+                            <div class="invalid-feedback">
+                                Пожалуйста, укажите название критерия.
+                            </div>
+                            <small class="form-text text-muted">
+                                Например: "Работа с клиентами"
+                            </small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form.weight.label_tag }}
+                            <div class="input-group">
+                                {{ form.weight }}
+                                <span class="input-group-text">%</span>
+                            </div>
+                            <div class="invalid-feedback">
+                                Вес должен быть от 0 до 100%
+                            </div>
+                            <div class="progress mt-2">
+                                <div class="progress-bar"
+                                     style="width: {{ form.weight.value|default:0 }}%"
+                                     role="progressbar">
+                                    {{ form.weight.value|default:0 }}%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group mb-4">
+                    {{ form.description.label_tag }}
+                    {{ form.description }}
+                    <small class="form-text text-muted">
+                        Опишите, как оценивается этот критерий
+                    </small>
+                </div>
+
+                <div class="form-check form-switch mb-4">
+                    {{ form.is_active }}
+                    <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                        Активный критерий
+                    </label>
+                </div>
+
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Сохранить
+                    </button>
+                    <a href="{% url 'evaluations:criteria-list' %}" class="btn btn-secondary">
+                        <i class="fas fa-times me-1"></i> Отмена
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script>
+// Валидация формы
+document.addEventListener('DOMContentLoaded', function() {
+    // Показываем текущий вес в процентах
+    const weightInput = document.getElementById('{{ form.weight.id_for_label }}');
+    const progressBar = document.querySelector('.progress-bar');
+
+    weightInput.addEventListener('input', function() {
+        const value = Math.min(100, Math.max(0, this.value));
+        progressBar.style.width = value + '%';
+        progressBar.textContent = value + '%';
+    });
+});
+</script>
+{% endblock %}

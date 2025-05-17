@@ -1,0 +1,23 @@
+/* Форма входа */
+.auth-card {
+    max-width: 500px;
+    margin: 2rem auto;
+}
+
+.auth-header {
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.auth-form {
+    padding: 2rem;
+}
+
+.auth-form .form-control {
+    margin-bottom: 1rem;
+}
+
+.auth-links {
+    margin-top: 1rem;
+    text-align: center;
+}
