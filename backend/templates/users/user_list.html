@@ -5,13 +5,13 @@
     <h1 class="my-4">Список пользователей</h1>
     <a href="{% url 'users:user-create' %}" class="btn btn-primary mb-3">Добавить пользователя</a>
     <div class="row mb-3">
-    <div class="col-md-6">
-        <input type="text" class="form-control" placeholder="Поиск..." id="searchInput">
+        <div class="col-md-6">
+            <input type="text" class="form-control" placeholder="Поиск..." id="searchInput">
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="?sort=name" class="btn btn-sm btn-outline-secondary">Сортировать по имени</a>
+        </div>
     </div>
-    <div class="col-md-6 text-end">
-        <a href="?sort=name" class="btn btn-sm btn-outline-secondary">Сортировать по имени</a>
-    </div>
-</div>
     <table class="table table-striped">
         <thead>
             <tr>
@@ -32,6 +32,7 @@
                 <td>
                     <a href="{% url 'users:user-detail' user.pk %}" class="btn btn-sm btn-info">Подробнее</a>
                     <a href="{% url 'users:user-update' user.pk %}" class="btn btn-sm btn-warning">Редактировать</a>
+                    <a href="{% url 'users:user-delete' user.pk %}" class="btn btn-sm btn-danger">Удалить</a>
                 </td>
             </tr>
             {% endfor %}
