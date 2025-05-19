@@ -1,0 +1,22 @@
+{% extends "base/base.html" %}
+{% load static %}
+{% block content %}
+<div class="container">
+    <h1 class="my-4">Подтверждение удаления</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <p class="text-danger">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                Вы уверены, что хотите удалить пользователя "{{ object.get_full_name }}"?
+            </p>
+
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">Удалить</button>
+                <a href="{% url 'users:user-list' %}" class="btn btn-secondary">Отмена</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
