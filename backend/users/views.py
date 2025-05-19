@@ -146,3 +146,13 @@ class UserAssignRoleView(LeaderRequiredMixin, UpdateView):
     def form_invalid(self, form):
          messages.error(self.request, _('Failed to assign role.'))
          return super().form_invalid(form)
+
+
+class UserDeleteView(LeaderRequiredMixin, DeleteView):
+    model = User
+    template_name = 'users/user_confirm_delete.html'
+    success_url = reverse_lazy('users:user-list')
+
+    def delete(self, request, *args, **kwargs):
+        messages.success(request, _('Пользователь успешно удален'))
+        return super().delete(request, *args, **kwargs)
