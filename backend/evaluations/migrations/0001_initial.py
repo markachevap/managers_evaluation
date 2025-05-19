@@ -38,7 +38,12 @@ class Migration(migrations.Migration):
                 ('is_active', models.BooleanField(default=True)),
             ],
             options={
-                'constraints': [models.CheckConstraint(condition=models.Q(('weight__gte', 0), ('weight__lte', 1)), name='weight_range')],
+                'constraints': [
+                    models.CheckConstraint(
+                        check=models.Q(weight__gte=0) & models.Q(weight__lte=1),
+                        name='weight_range'
+                    )
+                ],
             },
         ),
         migrations.CreateModel(

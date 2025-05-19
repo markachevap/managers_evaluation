@@ -46,6 +46,9 @@ class EvaluationCriteria(models.Model):
         if total_weight + self.weight > 1:
             raise ValidationError("Сумма весов всех критериев не должна превышать 1")
 
+    def __str__(self):
+        return f"{self.get_criteria_type_display()}"
+
 
 class ManagerEvaluation(models.Model):
     """
@@ -87,14 +90,20 @@ class ManagerEvaluation(models.Model):
         unique_together = ['manager', 'period_start', 'period_end']
 
     def calculate_total_score(self):
-        scores = self.scores.all()
+        if not self.pk:
+            # Если объект ещё не сохранён — возвращаем None
+            return None
+        scores = self.scores.select_related('criteria').all()
         if scores.exists():
             return sum(score.value * score.criteria.weight for score in scores if score.criteria.is_active)
         return None
 
     def clean(self):
+        if self.period_start is None or self.period_end is None:
+            raise ValidationError("Дата начала и дата окончания должны быть указаны.")
+
         if self.period_start >= self.period_end:
-            raise ValidationError(_('Начало периода должно быть раньше конца периода'))
+            raise ValidationError("Дата начала не может быть позже даты окончания")
 
     def save(self, *args, **kwargs):
         self.total_score = self.calculate_total_score()

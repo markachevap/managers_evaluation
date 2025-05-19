@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import (
     EvaluationCriteriaListView,
-    EvaluationCriteriaUpdateView, EvaluationCriteriaDeleteView,
+    EvaluationCriteriaCreateView, EvaluationCriteriaUpdateView, EvaluationCriteriaDeleteView,
     EvaluationCreateView, EvaluationUpdateView, EvaluationDetailView,
     EvaluationListView, EvaluationDeleteView,
     ManagerDashboardView, LeaderDashboardView, ComparisonView, ManagerStatsView, BulkEvaluationCreateView
@@ -12,6 +12,7 @@ app_name = 'evaluations'
 urlpatterns = [
     # Управление критериями оценки
     path('criteria/', EvaluationCriteriaListView.as_view(), name='criteria-list'),
+    path('criteria/create/', EvaluationCriteriaCreateView.as_view(), name='criteria-create'),
     path('criteria/<int:pk>/update/', EvaluationCriteriaUpdateView.as_view(), name='criteria-update'),
     path('criteria/<int:pk>/delete/', EvaluationCriteriaDeleteView.as_view(), name='criteria-delete'),
 

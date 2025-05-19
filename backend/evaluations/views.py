@@ -1,4 +1,4 @@
-
+from django.db.transaction import commit
 from django.views.generic import (
     ListView,
     CreateView,
@@ -13,7 +13,7 @@ from django.db.models import Subquery, OuterRef, Count, Avg, Q
 from django.db.models.functions import Coalesce
 from users.models import User
 from .models import EvaluationCriteria, ManagerEvaluation, EvaluationScore
-from .forms import EvaluationForm, EvaluationScoreFormSet, BulkEvaluationForm
+from .forms import EvaluationForm, EvaluationScoreFormSet, BulkEvaluationForm, EvaluationCriteriaForm
 from django.views.generic import DetailView
 from django.contrib.auth import get_user_model
 from django.core.paginator import Paginator
@@ -76,6 +76,13 @@ class EvaluationCriteriaListView(LeaderRequiredMixin, ListView):
     context_object_name = 'criterias'
 
 
+class EvaluationCriteriaCreateView(CreateView):
+    model = EvaluationCriteria
+    form_class = EvaluationCriteriaForm
+    template_name = 'evaluations/criteria_form.html'
+    success_url = reverse_lazy('evaluations:criteria-list')
+
+
 class EvaluationCriteriaUpdateView(UpdateView):
     model = EvaluationCriteria
     fields = ['weight']
@@ -108,14 +115,17 @@ class EvaluationCreateView(LeaderRequiredMixin, CreateView):
         if self.request.POST:
             context['formset'] = EvaluationScoreFormSet(self.request.POST)
         else:
-            context['formset'] = EvaluationScoreFormSet()
+            criteria_list = EvaluationCriteria.objects.filter(is_active=True)
+            initial = [{'criteria': c} for c in criteria_list]
+            context['formset'] = EvaluationScoreFormSet(queryset=EvaluationScore.objects.none(), initial=initial)
         return context
 
     def form_valid(self, form):
         context = self.get_context_data()
         formset = context['formset']
-        if formset.is_valid():
-            self.object = form.save()
+        if form.is_valid() and formset.is_valid():
+            self.object = form.save(commit=False)
+            self.object.save()
             formset.instance = self.object
             formset.save()
             return super().form_valid(form)

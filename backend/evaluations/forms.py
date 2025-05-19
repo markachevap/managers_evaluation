@@ -27,6 +27,18 @@ class EvaluationForm(forms.ModelForm):
             self.evaluator = evaluator
 
 
+class EvaluationScoreForm(forms.ModelForm):
+    class Meta:
+        model = EvaluationScore
+        fields = ['criteria', 'value', 'comment']
+
+
+class EvaluationCriteriaForm(forms.ModelForm):
+    class Meta:
+        model = EvaluationCriteria
+        fields = ['criteria_type', 'weight', 'description', 'is_active']
+
+
 # Formset для оценок по критериям
 EvaluationScoreFormSet = inlineformset_factory(
     ManagerEvaluation,
