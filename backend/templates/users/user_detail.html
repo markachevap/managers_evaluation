@@ -18,6 +18,10 @@
                     <p><strong>Последний вход:</strong> {{ object.last_login|date:"d.m.Y H:i" }}</p>
                 </div>
             </div>
+            <div class="mt-3">
+                <a href="{% url 'users:user-update' object.pk %}" class="btn btn-warning">Редактировать</a>
+                <a href="{% url 'users:user-delete' object.pk %}" class="btn btn-danger">Удалить</a>
+            </div>
         </div>
     </div>
 
