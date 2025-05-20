@@ -143,8 +143,9 @@ class ManagerEvaluation(models.Model):
             raise ValidationError("Дата начала не может быть позже даты окончания")
 
     def save(self, *args, **kwargs):
-        self.total_score = self.calculate_total_score()
         super().save(*args, **kwargs)
+        self.total_score = self.calculate_total_score()
+        super().save(update_fields=['total_score'])
 
     @classmethod
     def calculate_relative_scores(cls, evaluations):

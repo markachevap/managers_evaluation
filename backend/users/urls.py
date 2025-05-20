@@ -17,7 +17,6 @@ from django.contrib.auth import views as auth_views
 from .views import CustomLoginView
 from . import views
 
-app_name = 'users'
 
 auth_urlpatterns = [
     path('login/', CustomLoginView.as_view(), name='login'),
@@ -98,24 +97,4 @@ auth_urlpatterns = [
     path('reset/done/', auth_views.PasswordResetCompleteView.as_view(
         template_name='users/password_reset_complete.html'
     ), name='password_reset_complete'),
-]
-
-urlpatterns = [
-# Управление пользователями
-    path('', UserListView.as_view(), name='user-list'),
-    path('create/', UserCreateView.as_view(), name='user-create'),
-    path('<int:pk>/', UserDetailView.as_view(), name='user-detail'),
-    path('<int:pk>/update/', UserUpdateView.as_view(), name='user-update'),
-
-    # Управление кастомными ролями
-    path('<int:pk>/assign-role/', UserAssignRoleView.as_view(), name='assign-role'),
-    path('roles/', CustomRoleListView.as_view(), name='role-list'),
-    path('roles/create/', CustomRoleCreateView.as_view(), name='role-create'),
-    path('roles/<int:pk>/update/', CustomRoleUpdateView.as_view(), name='role-update'),
-    path('roles/<int:pk>/delete/', CustomRoleDeleteView.as_view(), name='role-delete'),
-    path('login/', CustomLoginView.as_view(), name='login'),
-    path('register/', views.register, name='register'),
-    path('<int:pk>/delete/', UserDeleteView.as_view(), name='user-delete'),
-
-    *auth_urlpatterns
 ]

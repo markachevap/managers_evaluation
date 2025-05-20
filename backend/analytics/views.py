@@ -99,7 +99,7 @@ class LeaderAnalyticsView(LoginRequiredMixin, UserPassesTestMixin, TemplateView)
             dataset = {
                 'label': criteria.get_criteria_type_display(),
                 'data': [
-                    float(EvaluationScore.objects.filter(criteria=criteria, evaluation=e).aggregate(Avg('value'))['avg'] or 0)
+                    float(EvaluationScore.objects.filter(criteria=criteria, evaluation=e).aggregate(avg=Avg('value'))['avg'] or 0)
                     for e in all_evaluations
                 ],
                 'borderColor': '#4CAF50',

@@ -185,6 +185,9 @@ class EvaluationCreateView(LeaderRequiredMixin, CreateView):
         else:
             return self.render_to_response(self.get_context_data(form=form))
 
+    def get_success_url(self):
+        return reverse_lazy('evaluation-detail', kwargs={'pk': self.object.pk})
+
 
 class EvaluationUpdateView(LeaderRequiredMixin, UpdateView):
     model = ManagerEvaluation
@@ -231,6 +234,9 @@ class EvaluationUpdateView(LeaderRequiredMixin, UpdateView):
         else:
             return self.render_to_response(self.get_context_data(form=form))
 
+    def get_success_url(self):
+        return reverse_lazy('evaluations:evaluation-detail', kwargs={'pk': self.object.pk})
+
 
 class EvaluationDetailView(LoginRequiredMixin, DetailView):
     model = ManagerEvaluation
@@ -270,8 +276,8 @@ class ManagerDashboardView(ManagerRequiredMixin, TemplateView):
 
         # Рассчитываем разницу между последними двумя оценками
         if evaluations.count() >= 2:
-            last = evaluations[0].total_score()
-            prev = evaluations[1].total_score()
+            last = evaluations[0].total_score
+            prev = evaluations[1].total_score
             context['score_diff'] = last - prev
 
         # Рассчитываем позицию в рейтинге
