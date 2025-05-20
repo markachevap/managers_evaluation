@@ -28,6 +28,19 @@ class EvaluationCriteria(models.Model):
     weight = models.FloatField(default=0.0)  # Поле для веса
     description = models.TextField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
+    significance = models.FloatField(
+        _('Значимость фактора'),
+        default=1.0,
+        help_text=_('Значимость фактора для расчета общей оценки')
+    )
+
+    @property
+    def normalized_weight(self):
+        """Возвращает нормализованный вес критерия"""
+        total_significance = EvaluationCriteria.objects.filter(
+            is_active=True
+        ).aggregate(total=models.Sum('significance'))['total'] or 0
+        return self.significance / total_significance if total_significance else 0
 
     class Meta:
         constraints = [
@@ -48,6 +61,23 @@ class EvaluationCriteria(models.Model):
 
     def __str__(self):
         return f"{self.get_criteria_type_display()}"
+
+    @classmethod
+    def create_default_criteria(cls):
+        criteria_list = [
+            {'criteria_type': cls.PRODUCTION, 'weight': 0.2, 'description': 'Производственные показатели',
+             'is_active': True},
+            {'criteria_type': cls.CLIENT_SATISFACTION, 'weight': 0.2, 'description': 'Удовлетворенность клиентов',
+             'is_active': True},
+            {'criteria_type': cls.PLANS, 'weight': 0.2, 'description': 'Выполнение плановых показателей',
+             'is_active': True},
+            {'criteria_type': cls.TEAMWORK, 'weight': 0.2, 'description': 'Командная работа', 'is_active': True},
+            {'criteria_type': cls.DEVELOPMENT, 'weight': 0.2, 'description': 'Личные достижения и развитие',
+             'is_active': True},
+        ]
+
+        for criteria in criteria_list:
+            cls.objects.get_or_create(**criteria)
 
 
 class ManagerEvaluation(models.Model):
@@ -91,12 +121,19 @@ class ManagerEvaluation(models.Model):
 
     def calculate_total_score(self):
         if not self.pk:
-            # Если объект ещё не сохранён — возвращаем None
             return None
-        scores = self.scores.select_related('criteria').all()
-        if scores.exists():
-            return sum(score.value * score.criteria.weight for score in scores if score.criteria.is_active)
-        return None
+
+        # Получаем все оценки за этот же период
+        period_evaluations = ManagerEvaluation.objects.filter(
+            period_start=self.period_start,
+            period_end=self.period_end
+        )
+
+        # Рассчитываем оценки по новому алгоритму
+        manager_scores = self.calculate_relative_scores(period_evaluations)
+
+        # Возвращаем оценку для текущего менеджера
+        return manager_scores.get(self.manager_id, {}).get('total', 0)
 
     def clean(self):
         if self.period_start is None or self.period_end is None:
@@ -108,6 +145,56 @@ class ManagerEvaluation(models.Model):
     def save(self, *args, **kwargs):
         self.total_score = self.calculate_total_score()
         super().save(*args, **kwargs)
+
+    @classmethod
+    def calculate_relative_scores(cls, evaluations):
+        """
+        Рассчитывает оценки по новому алгоритму
+        evaluations - QuerySet оценок за определенный период
+        """
+        if not evaluations.exists():
+            return {}
+
+        # Получаем все активные критерии
+        criteria = EvaluationCriteria.objects.filter(is_active=True)
+
+        # Собираем данные: {критерий: {менеджер: оценка}}
+        criteria_data = {}
+        manager_scores = {}
+
+        # Инициализируем структуры данных
+        for criterion in criteria:
+            criteria_data[criterion.id] = {
+                'significance': criterion.significance,
+                'normalized_weight': criterion.normalized_weight,
+                'manager_scores': {}
+            }
+
+        for evaluation in evaluations:
+            manager_id = evaluation.manager_id
+            manager_scores[manager_id] = {
+                'manager': evaluation.manager,
+                'total': 0
+            }
+
+            for score in evaluation.scores.all():
+                criterion_id = score.criteria_id
+                if criterion_id in criteria_data:
+                    criteria_data[criterion_id]['manager_scores'][manager_id] = score.value
+
+        # Рассчитываем общие суммы по критериям
+        for criterion_id, data in criteria_data.items():
+            total_score = sum(data['manager_scores'].values())
+            if total_score == 0:
+                continue
+
+            # Рассчитываем относительные оценки для каждого менеджера
+            for manager_id, score in data['manager_scores'].items():
+                relative_score = score / total_score
+                weighted_score = relative_score * data['normalized_weight']
+                manager_scores[manager_id]['total'] += weighted_score
+
+        return manager_scores
 
 
 class EvaluationScore(models.Model):
