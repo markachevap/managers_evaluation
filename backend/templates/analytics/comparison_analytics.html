@@ -25,7 +25,7 @@
                 <div class="card-body">
                     <div class="text-center mb-3">
                         <div class="position-relative d-inline-block">
-                            <div class="radial-progress" style="--value:{{ data.total_score|mul:10 }}; --size: 6rem;">
+                            <div class="radial-progress" style="--value:{{ data.total_score_percent }}; --size: 6rem;">
                                 <strong>{{ data.total_score|floatformat:1 }}</strong>
                             </div>
                             <div class="position-absolute top-100 start-50 translate-middle mt-2">
@@ -34,17 +34,14 @@
                                 </span>
                             </div>
                         </div>
-                    </div>
 
                     <div class="mb-3">
                         <h6 class="font-weight-bold mb-2">Сильные стороны:</h6>
                         <div class="d-flex flex-wrap gap-2">
-                            {% for criteria, score in data.criteria_scores.items %}
+                            {% for criteria_name, score in data.criteria_scores.items %}
                                 {% if score >= 8 %}
-                                <span class="badge bg-success">{{ criteria|truncatechars:15 }}: {{ score }}</span>
+                                <span class="badge bg-success">{{ criteria_name|truncatechars:15 }}: {{ score }}</span>
                                 {% endif %}
-                            {% empty %}
-                                <span class="text-muted">Нет данных</span>
                             {% endfor %}
                         </div>
                     </div>
@@ -52,12 +49,10 @@
                     <div class="mb-3">
                         <h6 class="font-weight-bold mb-2">Слабые стороны:</h6>
                         <div class="d-flex flex-wrap gap-2">
-                            {% for criteria, score in data.criteria_scores.items %}
+                            {% for criteria_name, score in data.criteria_scores.items %}
                                 {% if score < 6 %}
-                                <span class="badge bg-danger">{{ criteria|truncatechars:15 }}: {{ score }}</span>
+                                <span class="badge bg-danger">{{ criteria_name|truncatechars:15 }}: {{ score }}</span>
                                 {% endif %}
-                            {% empty %}
-                                <span class="text-muted">Нет данных</span>
                             {% endfor %}
                         </div>
                     </div>
@@ -77,28 +72,10 @@
         <div class="col-12">
             <div class="card shadow mb-4">
                 <div class="card-header py-3 bg-white">
-                    <ul class="nav nav-tabs nav-justified" id="comparisonTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="radar-tab" data-bs-toggle="tab" data-bs-target="#radar" type="button">
-                                <i class="fas fa-chart-radar me-2"></i>Радар сравнения
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="trend-tab" data-bs-toggle="tab" data-bs-target="#trend" type="button">
-                                <i class="fas fa-chart-line me-2"></i>Динамика
-                            </button>
-                        </li>
-                    </ul>
+                    <h6 class="m-0 font-weight-bold text-primary">Динамика оценок</h6>
                 </div>
                 <div class="card-body">
-                    <div class="tab-content" id="comparisonTabContent">
-                        <div class="tab-pane fade show active" id="radar" role="tabpanel">
-                            <canvas id="radarChart" height="300"></canvas>
-                        </div>
-                        <div class="tab-pane fade" id="trend" role="tabpanel">
-                            <canvas id="trendChart" height="300"></canvas>
-                        </div>
-                    </div>
+                    <canvas id="trendChart" height="300"></canvas>
                 </div>
             </div>
         </div>
@@ -143,65 +120,33 @@
         </div>
     </div>
 </div>
+    </div>
 {% endblock %}
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Радар сравнения
-        const radarCtx = document.getElementById('radarChart');
-        const radarChart = new Chart(radarCtx, {
-            type: 'radar',
-            data: {
-                labels: [
-                    {% for criteria in criterias %}
-                    "{{ criteria.name }}"{% if not forloop.last %},{% endif %}
-                    {% endfor %}
-                ],
-                datasets: [
-                    {% for data in comparison_data %}
-                    {
-                        label: '{{ data.manager.get_full_name }}',
-                        data: [
-                            {% for criteria in criterias %}
-                            {{ data.criteria_scores|get_item:criteria.name|default:0 }}{% if not forloop.last %},{% endif %}
-                            {% endfor %}
-                        ],
-                        backgroundColor: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.2)`,
-                        borderColor: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 1)`,
-                        borderWidth: 2,
-                        pointBackgroundColor: '#fff',
-                    },
-                    {% endfor %}
-                ]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    r: {
-                        angleLines: {
-                            display: true
-                        },
-                        suggestedMin: 0,
-                        suggestedMax: 10
-                    }
-                }
-            }
-        });
-
         // График динамики
         const trendCtx = document.getElementById('trendChart');
         const trendChart = new Chart(trendCtx, {
             type: 'line',
             data: {
-                labels: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн'],
+                labels: [
+                    {% for label in chart_data.trend_labels %}
+                        "{{ label }}"{% if not forloop.last %},{% endif %}
+                    {% endfor %}
+                ],
                 datasets: [
-                    {% for data in comparison_data %}
+                    {% for dataset in chart_data.trend_datasets %}
                     {
-                        label: '{{ data.manager.get_full_name }}',
-                        data: [5.5, 6.0, 6.5, 7.0, 7.5, 8.0].map(x => x + Math.random()),
-                        borderColor: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 1)`,
+                        label: '{{ dataset.label }}',
+                        data: [
+                           {% for value in dataset.data %}
+                                {{ value|default:0 }}{% if not forloop.last %},{% endif %}
+                            {% endfor %}
+                        ],
+                        borderColor: '{{ dataset.borderColor }}',
                         backgroundColor: 'transparent',
                         borderWidth: 2,
                         tension: 0.1
