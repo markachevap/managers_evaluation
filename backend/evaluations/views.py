@@ -1,4 +1,3 @@
-from django.db.transaction import commit
 from django.views.generic import (
     ListView,
     CreateView,
@@ -16,6 +15,10 @@ from .models import EvaluationCriteria, ManagerEvaluation, EvaluationScore
 from .forms import EvaluationForm, EvaluationScoreFormSet, BulkEvaluationForm, EvaluationCriteriaForm
 from django.views.generic import DetailView
 from django.contrib.auth import get_user_model
+from django.shortcuts import redirect
+from collections import defaultdict
+from decimal import Decimal, getcontext
+from django.db.models import Sum
 from django.core.paginator import Paginator
 
 
@@ -23,11 +26,7 @@ from django.core.paginator import Paginator
 User = get_user_model()
 
 
-class EvaluationListView(ListView):
-    model = ManagerEvaluation
-    paginate_by = 15
-
-
+getcontext().prec = 10
 class ManagerStatsView(LoginRequiredMixin, DetailView):
     model = User
     template_name = 'evaluations/manager_stats.html'
@@ -39,24 +38,58 @@ class ManagerStatsView(LoginRequiredMixin, DetailView):
 
         # Получаем все оценки менеджера
         evaluations = ManagerEvaluation.objects.filter(manager=manager).order_by('-evaluation_date')
-
-        # Добавляем данные для графика
         context['evaluations'] = evaluations
-        context['criteria'] = EvaluationCriteria.objects.filter(is_active=True)
 
-        # Рассчитываем средние оценки по критериям
+        # Получаем активные критерии с весами
+        criteria_list = EvaluationCriteria.objects.filter(is_active=True)
+        context['criteria'] = criteria_list
+
+        # Собираем все оценки по критериям от всех менеджеров
+        from collections import defaultdict
+        all_scores = defaultdict(list)
+
+        all_evaluations = ManagerEvaluation.objects.all().prefetch_related('scores__criteria')
+
+        for evaluation in all_evaluations:
+            for score in evaluation.scores.all():
+                all_scores[score.criteria_id].append(score.value)
+
+        # Расчёт нормализованных оценок текущего менеджера
+        manager_scores = defaultdict(list)
+        for evaluation in evaluations:
+            for score in evaluation.scores.all():
+                manager_scores[score.criteria_id].append(score.value)
+
         criteria_stats = []
-        for criteria in context['criteria']:
-            avg = evaluations.aggregate(
-                avg_score=Avg('scores__value', filter=Q(scores__criteria=criteria))
-            )['avg_score'] or 0
+        total_score = 0  # Общая оценка менеджера
+
+        for criteria in criteria_list:
+            all_values = all_scores.get(criteria.id, [])
+            if not all_values:
+                continue
+
+            total_sum = sum(all_values)
+            if total_sum == 0:
+                continue
+
+            # Относительная сумма по менеджеру для этого критерия
+            manager_sum = sum(manager_scores.get(criteria.id, []))
+            relative_score = manager_sum / total_sum
+
+            # Применяем вес критерия
+            weighted_score = relative_score * criteria.weight
+            total_score += weighted_score
 
             criteria_stats.append({
                 'criteria': criteria,
-                'avg_score': avg
+                'avg_score': weighted_score,
+                'raw_score': manager_sum,
+                'relative': relative_score,
+                'weight': criteria.weight,
             })
 
         context['criteria_stats'] = criteria_stats
+        context['total_score'] = total_score
 
         return context
 
@@ -87,7 +120,7 @@ class EvaluationCriteriaUpdateView(UpdateView):
     model = EvaluationCriteria
     fields = ['weight']
     template_name = 'evaluations/criteria_form.html'
-    success_url = reverse_lazy('criteria-list')
+    success_url = reverse_lazy('evaluations:criteria-list')
 
     def get_queryset(self):
         return EvaluationCriteria.objects.filter(is_active=True)
@@ -97,7 +130,7 @@ class EvaluationCriteriaUpdateView(UpdateView):
 class EvaluationCriteriaDeleteView(LeaderRequiredMixin, DeleteView):
     model = EvaluationCriteria
     template_name = 'evaluations/criteria_confirm_delete.html'
-    success_url = reverse_lazy('criteria-list')
+    success_url = reverse_lazy('evaluations:criteria-list')
 
 
 class EvaluationCreateView(LeaderRequiredMixin, CreateView):
@@ -123,17 +156,21 @@ class EvaluationCreateView(LeaderRequiredMixin, CreateView):
     def form_valid(self, form):
         context = self.get_context_data()
         formset = context['formset']
-        if form.is_valid() and formset.is_valid():
-            self.object = form.save(commit=False)
-            self.object.save()
-            formset.instance = self.object
+
+        self.object = form.save(commit=False)
+        self.object.evaluator = self.request.user
+        self.object.save()
+
+        formset.instance = self.object
+
+        if formset.is_valid():
             formset.save()
             return super().form_valid(form)
         else:
             return self.render_to_response(self.get_context_data(form=form))
 
     def get_success_url(self):
-        return reverse_lazy('evaluation-detail', kwargs={'pk': self.object.pk})
+        return reverse_lazy('evaluations:evaluation-detail', kwargs={'pk': self.object.pk})
 
 
 
@@ -153,16 +190,21 @@ class EvaluationUpdateView(LeaderRequiredMixin, UpdateView):
     def form_valid(self, form):
         context = self.get_context_data()
         formset = context['formset']
+
+        self.object = form.save(commit=False)
+        self.object.evaluator = self.request.user
+        self.object.save()
+
+        formset.instance = self.object
+
         if formset.is_valid():
-            self.object = form.save()
-            formset.instance = self.object
             formset.save()
             return super().form_valid(form)
         else:
             return self.render_to_response(self.get_context_data(form=form))
 
     def get_success_url(self):
-        return reverse_lazy('evaluation-detail', kwargs={'pk': self.object.pk})
+        return reverse_lazy('evaluations:evaluation-detail', kwargs={'pk': self.object.pk})
 
 
 class EvaluationDetailView(LoginRequiredMixin, DetailView):
@@ -188,7 +230,7 @@ class EvaluationListView(LeaderRequiredMixin, ListView):
 class EvaluationDeleteView(LeaderRequiredMixin, DeleteView):
     model = ManagerEvaluation
     template_name = 'evaluations/evaluation_confirm_delete.html'
-    success_url = reverse_lazy('evaluation-list')
+    success_url = reverse_lazy('evaluations:evaluation-list')
 
 
 class ManagerDashboardView(ManagerRequiredMixin, TemplateView):

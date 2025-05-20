@@ -44,6 +44,6 @@ EvaluationScoreFormSet = inlineformset_factory(
     ManagerEvaluation,
     EvaluationScore,
     fields=('criteria', 'value', 'comment'),
-    extra=1,
+    extra=5,
     can_delete=False
 )
