@@ -2,7 +2,7 @@ from django.views.generic import ListView, CreateView, UpdateView, DeleteView, D
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.urls import reverse_lazy
 from .models import User, CustomRole
-from .forms import UserCreateForm, CustomRoleForm, AssignRoleForm
+from .forms import UserCreateForm, CustomRoleForm, AssignRoleForm, RegisterForm, UserProfileForm
 from evaluations.models import ManagerEvaluation
 from django.contrib.auth.views import LoginView
 from .forms import EmailAuthForm
@@ -11,8 +11,6 @@ from django.utils.translation import gettext_lazy as _
 from django.db.models import Window, F
 from django.db.models.functions import FirstValue
 from django.shortcuts import render, redirect
-from .forms import RegisterForm
-from .models import User
 from django.contrib.auth import login
 
 
@@ -146,3 +144,26 @@ class UserAssignRoleView(LeaderRequiredMixin, UpdateView):
     def form_invalid(self, form):
          messages.error(self.request, _('Failed to assign role.'))
          return super().form_invalid(form)
+
+
+class UserDeleteView(LeaderRequiredMixin, DeleteView):
+    model = User
+    template_name = 'users/user_confirm_delete.html'
+    success_url = reverse_lazy('users:user-list')
+
+    def delete(self, request, *args, **kwargs):
+        messages.success(request, _('Пользователь успешно удален'))
+        return super().delete(request, *args, **kwargs)
+
+class UserProfileView(LoginRequiredMixin, UpdateView):
+    model = User
+    form_class = UserProfileForm
+    template_name = 'users/profile.html'
+    success_url = reverse_lazy('users:profile')
+
+    def get_object(self):
+        return self.request.user
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Профиль успешно обновлен')
+        return super().form_valid(form)
