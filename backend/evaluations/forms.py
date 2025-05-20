@@ -28,6 +28,16 @@ class EvaluationForm(forms.ModelForm):
 
 
 class EvaluationScoreForm(forms.ModelForm):
+    value = forms.FloatField(
+        label='Оценка',
+        min_value=0,
+        max_value=10,
+        widget=forms.NumberInput(attrs={
+            'step': 0.1,
+            'class': 'form-control'
+        })
+    )
+
     class Meta:
         model = EvaluationScore
         fields = ['criteria', 'value', 'comment']
@@ -43,7 +53,8 @@ class EvaluationCriteriaForm(forms.ModelForm):
 EvaluationScoreFormSet = inlineformset_factory(
     ManagerEvaluation,
     EvaluationScore,
+    form=EvaluationScoreForm,
     fields=('criteria', 'value', 'comment'),
-    extra=1,
+    extra=0,
     can_delete=False
 )
