@@ -69,7 +69,11 @@
                                 Лучший менеджер
                             </div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                {{ top_manager.get_full_name|default:"-" }}
+                                {% if top_manager %}
+                                    {{ top_manager.get_full_name }}
+                                {% else %}
+                                    -
+                                {% endif %}
                             </div>
                         </div>
                         <div class="col-auto">
@@ -106,7 +110,7 @@
         <div class="col-lg-6 mb-4">
             <div class="card shadow h-100">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center bg-white">
-                    <h6 class="m-0 font-weight-bold text-primary">Топ-5 менеджеров</h6>
+                    <h6 class="m-0 font-weight-bold text-primary">Все менеджеры</h6>
                     <a href="{% url 'analytics:comparison-analytics' %}" class="btn btn-sm btn-outline-primary">
                         Сравнить всех
                     </a>
@@ -129,11 +133,7 @@
                                     <td>{{ forloop.counter }}</td>
                                     <td>
                                         <div class="d-flex align-items-center">
-                                            <div class="avatar-sm me-3">
-                                                <span class="avatar-title rounded-circle bg-primary text-white">
-                                                    {{ manager.get_full_name|first }}
-                                                </span>
-                                            </div>
+
                                             <div>
                                                 <h6 class="mb-0">{{ manager.get_full_name }}</h6>
                                                 <small class="text-muted">{{ manager.position }}</small>
@@ -147,7 +147,7 @@
                                         </span>
                                     </td>
                                     <td class="text-end">
-                                        <a href="#" class="btn btn-sm btn-outline-secondary">Профиль</a>
+                                        <a href="{% url 'analytics:manager-analytics' manager_id=manager.id %}" class="btn btn-sm btn-outline-secondary">Профиль</a>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -171,7 +171,7 @@
                     <div class="mt-4">
                         <h6 class="font-weight-bold">Ключевые выводы:</h6>
                         <ul class="list-unstyled">
-                            {% for stat in criteria_stats|slice:":3" %}
+                            {% for stat in criteria_stats_with_hsl %}
                             <li class="mb-2">
                                 <i class="fas fa-arrow-{% if stat.avg_score >= 7 %}up text-success{% else %}down text-danger{% endif %} me-2"></i>
                                 {{ stat.criteria.name }}: {{ stat.avg_score|floatformat:2 }}
@@ -186,8 +186,7 @@
     </div>
 
     <!-- Дополнительные графики -->
-    <div class="row mt-4">
-        <div class="col-md-12">
+    <div class="col-md-12">
             <div class="card shadow mb-4">
                 <div class="card-header py-3 bg-white">
                     <h6 class="m-0 font-weight-bold text-primary">Динамика оценок по месяцам</h6>
@@ -199,7 +198,6 @@
                 </div>
             </div>
         </div>
-    </div>
 </div>
 {% endblock %}
 
@@ -207,31 +205,63 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // График средних оценок по критериям
+        // График тренда производительности
+        const trendCtx = document.getElementById('performanceTrendChart');
+        new Chart(trendCtx, {
+            type: 'line',
+            data: {
+                labels: {{ chart_data.labels|safe }},
+                datasets: [{
+                    label: 'Средняя оценка команды',
+                    data: {{ chart_data.data|safe }},
+                    borderColor: '#4e73df',
+                    backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 10
+                    }
+                }
+            }
+        });
+
+         // График средних оценок по критериям
         const ctx = document.getElementById('criteriaChart');
         new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: [
-                    {% for stat in criteria_stats %}
+                    {% for stat in criteria_stats_with_hsl %}
                     "{{ stat.criteria.name|truncatechars:15 }}"{% if not forloop.last %},{% endif %}
                     {% endfor %}
                 ],
                 datasets: [{
                     label: 'Средняя оценка',
                     data: [
-                        {% for stat in criteria_stats %}
+                        {% for stat in criteria_stats_with_hsl %}
                         {{ stat.avg_score|floatformat:2 }}{% if not forloop.last %},{% endif %}
                         {% endfor %}
                     ],
                     backgroundColor: [
-                        {% for stat in criteria_stats %}
-                        'hsl({{ forloop.counter0|mul:30 }}, 70%, 50%)'{% if not forloop.last %},{% endif %}
+                        {% for stat in criteria_stats_with_hsl %}
+                        'hsl({{ stat.hsl }}, 70%, 50%)'{% if not forloop.last %},{% endif %}
                         {% endfor %}
                     ],
                     borderColor: [
-                        {% for stat in criteria_stats %}
-                        'hsl({{ forloop.counter0|mul:30 }}, 70%, 40%)'{% if not forloop.last %},{% endif %}
+                        {% for stat in criteria_stats_with_hsl %}
+                        'hsl({{ stat.hsl }}, 70%, 40%)'{% if not forloop.last %},{% endif %}
                         {% endfor %}
                     ],
                     borderWidth: 1
@@ -258,38 +288,6 @@
                         ticks: {
                             stepSize: 1
                         }
-                    }
-                }
-            }
-        });
-
-        // График тренда производительности (пример)
-        const trendCtx = document.getElementById('performanceTrendChart');
-        new Chart(trendCtx, {
-            type: 'line',
-            data: {
-                labels: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн'],
-                datasets: [{
-                    label: 'Средняя оценка команды',
-                    data: [6.2, 6.5, 6.8, 7.1, 7.3, 7.5],
-                    borderColor: '#4e73df',
-                    backgroundColor: 'rgba(78, 115, 223, 0.05)',
-                    borderWidth: 2,
-                    tension: 0.3,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 10
                     }
                 }
             }
