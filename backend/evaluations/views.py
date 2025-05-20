@@ -16,6 +16,7 @@ from .models import EvaluationCriteria, ManagerEvaluation, EvaluationScore
 from .forms import EvaluationForm, EvaluationScoreFormSet, BulkEvaluationForm, EvaluationCriteriaForm
 from django.views.generic import DetailView
 from django.contrib.auth import get_user_model
+from django.db import models
 from django.core.paginator import Paginator
 
 
@@ -40,23 +41,67 @@ class ManagerStatsView(LoginRequiredMixin, DetailView):
         # Получаем все оценки менеджера
         evaluations = ManagerEvaluation.objects.filter(manager=manager).order_by('-evaluation_date')
 
-        # Добавляем данные для графика
-        context['evaluations'] = evaluations
-        context['criteria'] = EvaluationCriteria.objects.filter(is_active=True)
+        # Получаем все активные критерии
+        criteria = EvaluationCriteria.objects.filter(is_active=True)
 
-        # Рассчитываем средние оценки по критериям
+        # Рассчитываем статистику для каждого критерия
         criteria_stats = []
-        for criteria in context['criteria']:
-            avg = evaluations.aggregate(
-                avg_score=Avg('scores__value', filter=Q(scores__criteria=criteria))
-            )['avg_score'] or 0
+        for criterion in criteria:
+            # Получаем все оценки по этому критерию для менеджера
+            scores = EvaluationScore.objects.filter(
+                evaluation__manager=manager,
+                criteria=criterion
+            ).order_by('-evaluation__evaluation_date')
 
-            criteria_stats.append({
-                'criteria': criteria,
-                'avg_score': avg
-            })
+            if scores.exists():
+                # Рассчитываем относительные оценки
+                total_scores = []
+                for score in scores:
+                    # Находим все оценки за этот же период
+                    period_scores = EvaluationScore.objects.filter(
+                        evaluation__period_start=score.evaluation.period_start,
+                        evaluation__period_end=score.evaluation.period_end,
+                        criteria=criterion
+                    )
 
-        context['criteria_stats'] = criteria_stats
+                    # Сумма оценок всех менеджеров по этому критерию за период
+                    sum_period = period_scores.aggregate(sum=models.Sum('value'))['sum'] or 1
+
+                    # Относительная оценка
+                    relative_score = (score.value / sum_period) * criterion.normalized_weight
+                    total_scores.append(relative_score)
+
+                # Статистика по критерию
+                stats = {
+                    'criteria': criterion,
+                    'last_relative_score': total_scores[0],
+                    'avg_relative_score': sum(total_scores) / len(total_scores),
+                    'max_relative_score': max(total_scores),
+                }
+                criteria_stats.append(stats)
+
+        # Добавляем относительные оценки к каждой оценке менеджера
+        for evaluation in evaluations:
+            evaluation.relative_score = 0
+            for score in evaluation.scores.all():
+                if score.criteria.is_active:
+                    # Находим все оценки за этот же период по этому критерию
+                    period_scores = EvaluationScore.objects.filter(
+                        evaluation__period_start=evaluation.period_start,
+                        evaluation__period_end=evaluation.period_end,
+                        criteria=score.criteria
+                    )
+
+                    # Сумма оценок всех менеджеров по этому критерию за период
+                    sum_period = period_scores.aggregate(sum=models.Sum('value'))['sum'] or 1
+
+                    # Добавляем относительную оценку
+                    evaluation.relative_score += (score.value / sum_period) * score.criteria.normalized_weight
+
+        context.update({
+            'evaluations': evaluations,
+            'criteria_stats': criteria_stats,
+        })
 
         return context
 
@@ -115,9 +160,16 @@ class EvaluationCreateView(LeaderRequiredMixin, CreateView):
         if self.request.POST:
             context['formset'] = EvaluationScoreFormSet(self.request.POST)
         else:
-            criteria_list = EvaluationCriteria.objects.filter(is_active=True)
-            initial = [{'criteria': c} for c in criteria_list]
-            context['formset'] = EvaluationScoreFormSet(queryset=EvaluationScore.objects.none(), initial=initial)
+            # Получаем все активные критерии
+            criteria = EvaluationCriteria.objects.filter(is_active=True)
+            # Создаем начальные данные для каждой формы
+            initial = [{'criteria': criterion} for criterion in criteria]
+            
+            context['formset'] = EvaluationScoreFormSet(
+                queryset=EvaluationScore.objects.none(),
+                initial=initial,
+                prefix='scores'
+            )
         return context
 
     def form_valid(self, form):
@@ -125,16 +177,13 @@ class EvaluationCreateView(LeaderRequiredMixin, CreateView):
         formset = context['formset']
         if form.is_valid() and formset.is_valid():
             self.object = form.save(commit=False)
+            self.object.evaluator = self.request.user
             self.object.save()
             formset.instance = self.object
             formset.save()
             return super().form_valid(form)
         else:
             return self.render_to_response(self.get_context_data(form=form))
-
-    def get_success_url(self):
-        return reverse_lazy('evaluation-detail', kwargs={'pk': self.object.pk})
-
 
 
 class EvaluationUpdateView(LeaderRequiredMixin, UpdateView):
@@ -145,24 +194,42 @@ class EvaluationUpdateView(LeaderRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         if self.request.POST:
-            context['formset'] = EvaluationScoreFormSet(self.request.POST, instance=self.object)
+            context['formset'] = EvaluationScoreFormSet(
+                self.request.POST,
+                instance=self.object,
+                prefix='scores'
+            )
         else:
-            context['formset'] = EvaluationScoreFormSet(instance=self.object)
+            # Убедитесь, что все критерии отображаются, даже если оценка по ним еще не создана
+            criteria = EvaluationCriteria.objects.filter(is_active=True)
+            existing_scores = self.object.scores.all()
+
+            # Создаем начальные данные для отсутствующих оценок
+            initial = []
+            existing_criteria_ids = [score.criteria_id for score in existing_scores]
+            for criterion in criteria:
+                if criterion.id not in existing_criteria_ids:
+                    initial.append({'criteria': criterion})
+
+            # Создаем formset с существующими оценками и начальными данными для отсутствующих
+            context['formset'] = EvaluationScoreFormSet(
+                instance=self.object,
+                queryset=existing_scores,
+                initial=initial,
+                prefix='scores'
+            )
         return context
 
     def form_valid(self, form):
         context = self.get_context_data()
         formset = context['formset']
-        if formset.is_valid():
+        if form.is_valid() and formset.is_valid():
             self.object = form.save()
             formset.instance = self.object
             formset.save()
             return super().form_valid(form)
         else:
             return self.render_to_response(self.get_context_data(form=form))
-
-    def get_success_url(self):
-        return reverse_lazy('evaluation-detail', kwargs={'pk': self.object.pk})
 
 
 class EvaluationDetailView(LoginRequiredMixin, DetailView):
@@ -233,40 +300,48 @@ class ManagerDashboardView(ManagerRequiredMixin, TemplateView):
         return context
 
 
-
-
 class LeaderDashboardView(LeaderRequiredMixin, TemplateView):
     template_name = 'evaluations/leader_dashboard.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        # Аннотируем пользователей последней оценкой
-        last_evaluation = ManagerEvaluation.objects.filter(
-            manager=OuterRef('pk')
-        ).order_by('-evaluation_date')[:1]
+        # Получаем последний период оценок
+        last_period = ManagerEvaluation.objects.values('period_start', 'period_end').order_by('-period_end').first()
 
-        managers = User.objects.filter(
-            system_role=User.SYSTEM_MANAGER
-        ).annotate(
-            last_score=Subquery(last_evaluation.values('total_score')),
-            last_evaluation_id=Subquery(last_evaluation.values('id'))
-        ).order_by('-last_score')
-
-        # Добавляем разницу с предыдущей оценкой
-        for manager in managers:
+        if last_period:
             evaluations = ManagerEvaluation.objects.filter(
-                manager=manager
-            ).order_by('-evaluation_date')[:2]
+                period_start=last_period['period_start'],
+                period_end=last_period['period_end']
+            )
 
-            if evaluations.count() >= 2:
-                manager.score_diff = evaluations[0].total_score - evaluations[1].total_score
-            else:
-                manager.score_diff = 0
+            # Рассчитываем оценки по новому алгоритму
+            manager_scores = ManagerEvaluation.calculate_relative_scores(evaluations)
 
-        context['managers'] = managers
+            # Преобразуем структуру данных
+            processed_scores = []
+            for manager_id, score_data in manager_scores.items():
+                # Вычисляем процент
+                percentage = score_data['total'] * 100
+
+                # Добавляем процент к данным
+                processed_scores.append({
+                    'manager': score_data['manager'],
+                    'total': score_data['total'],
+                    'percentage': percentage,
+                })
+
+            # Сортируем менеджеров по убыванию оценки
+            sorted_scores = sorted(
+                processed_scores,
+                key=lambda x: x['total'],
+                reverse=True
+            )
+
+            context['manager_scores'] = sorted_scores
+            context['evaluation_period'] = f"{last_period['period_start']} - {last_period['period_end']}"
+
         return context
-
 
 class BulkEvaluationCreateView(LeaderRequiredMixin, CreateView):
     template_name = 'evaluations/bulk_evaluation_form.html'
