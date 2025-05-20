@@ -1,6 +1,5 @@
-from django.urls import path
 from .views import (
-    UserListView, UserCreateView, UserUpdateView, UserDetailView,
+    UserListView, UserCreateView, UserUpdateView, UserDetailView, UserDeleteView,  UserProfileView,
     CustomRoleListView, CustomRoleCreateView, CustomRoleUpdateView, CustomRoleDeleteView, CustomLoginView, UserAssignRoleView
 )
 from django.urls import path, reverse_lazy
@@ -55,6 +54,8 @@ urlpatterns = [
     path('roles/<int:pk>/delete/', CustomRoleDeleteView.as_view(), name='role-delete'),
     path('login/', CustomLoginView.as_view(), name='login'),
     path('register/', views.register, name='register'),
+    path('<int:pk>/delete/', UserDeleteView.as_view(), name='user-delete'),
+    path('profile/', UserProfileView.as_view(), name='profile'),
 
     *auth_urlpatterns
 ]
