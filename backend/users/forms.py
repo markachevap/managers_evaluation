@@ -118,3 +118,66 @@ class AssignRoleForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if leader:
             self.fields['custom_role'].queryset = CustomRole.objects.filter(created_by=leader)
+
+
+class UserProfileForm(forms.ModelForm):
+    current_password = forms.CharField(
+        label='Текущий пароль',
+        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+        required=False
+    )
+    new_password = forms.CharField(
+        label='Новый пароль',
+        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+        required=False
+    )
+    confirm_password = forms.CharField(
+        label='Подтвердите новый пароль',
+        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+        required=False
+    )
+
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'email']
+        widgets = {
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        new_password = cleaned_data.get('new_password')
+        confirm_password = cleaned_data.get('confirm_password')
+        current_password = cleaned_data.get('current_password')
+
+        if new_password or confirm_password or current_password:
+            if not current_password:
+                raise forms.ValidationError("Для смены пароля необходимо ввести текущий пароль")
+
+            if not self.instance.check_password(current_password):
+                raise forms.ValidationError("Текущий пароль введен неверно")
+
+            if new_password != confirm_password:
+                raise forms.ValidationError("Новые пароли не совпадают")
+
+        return cleaned_data
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        new_password = self.cleaned_data.get('new_password')
+
+        if new_password:
+            user.set_password(new_password)
+
+        if commit:
+            user.save()
+
+        return user
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if User.objects.exclude(pk=self.instance.pk).filter(email=email).exists():
+            raise forms.ValidationError("Пользователь с таким email уже существует")
+        return email
