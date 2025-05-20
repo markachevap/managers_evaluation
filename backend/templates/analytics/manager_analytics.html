@@ -16,15 +16,9 @@
             <div class="card shadow h-100">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center bg-white">
                     <h6 class="m-0 font-weight-bold text-primary">Динамика ваших оценок</h6>
-                    <div class="dropdown no-arrow">
-                        <a class="dropdown-toggle" href="#" role="button" id="chartDropdown" data-bs-toggle="dropdown">
-                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
-                        </a>
-                        <div class="dropdown-menu dropdown-menu-end shadow">
-                            <a class="dropdown-item" href="#">Экспорт в PDF</a>
-                            <a class="dropdown-item" href="#">Поделиться</a>
-                        </div>
-                    </div>
+
+
+
                 </div>
                 <div class="card-body">
                     <div class="chart-area">
@@ -106,13 +100,11 @@
                                 Прогресс за месяц
                             </div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                {% if evaluations.count >= 2 %}
-                                    {% with delta=evaluations.last.total_score|sub:evaluations.first.total_score %}
-                                        {{ delta|floatformat:2 }}
-                                        <small class="text-{% if delta > 0 %}success{% else %}danger{% endif %}">
-                                            ({% if delta > 0 %}+{% endif %}{{ delta|floatformat:2 }})
-                                        </small>
-                                    {% endwith %}
+                                {% if delta is not None %}
+                                    {{ delta|floatformat:2 }}
+                                    <small class="text-{% if delta > 0 %}success{% else %}danger{% endif %}">
+                                        {% if delta > 0 %}+{% endif %}{{ delta|floatformat:2 }}
+                                    </small>
                                 {% else %}
                                     -
                                 {% endif %}
@@ -163,7 +155,7 @@
                     {% for dataset in chart_data.datasets %}
                     {
                         label: '{{ dataset.label }}',
-                        data: {{ dataset.data }},
+                        data: {{ dataset.data|safe }},
                         borderColor: '{{ dataset.borderColor }}',
                         backgroundColor: 'rgba(75, 192, 192, 0.1)',
                         borderWidth: 2,
