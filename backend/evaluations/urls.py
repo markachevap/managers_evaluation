@@ -1,9 +1,6 @@
 from django.urls import path
 from .views import (
-    EvaluationCriteriaListView,
-    EvaluationCriteriaCreateView, EvaluationCriteriaUpdateView, EvaluationCriteriaDeleteView,
-    EvaluationCreateView, EvaluationUpdateView, EvaluationDetailView,
-    EvaluationListView, EvaluationDeleteView,
+    EvaluationCreateView, EvaluationUpdateView, EvaluationDetailView, EvaluationListView, EvaluationDeleteView, 
     ManagerDashboardView, LeaderDashboardView, ComparisonView, ManagerStatsView, BulkEvaluationCreateView
 )
 
