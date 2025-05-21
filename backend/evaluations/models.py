@@ -29,7 +29,7 @@ class EvaluationCriteria(models.Model):
     description = models.TextField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
 
-    class Meta:
+    class Meta: #проверка, что сумма весов в диапазоне 0-1, но на уровне бд
         constraints = [
             models.CheckConstraint(
                 check=models.Q(weight__gte=0) & models.Q(weight__lte=1),
@@ -116,7 +116,7 @@ class ManagerEvaluation(models.Model):
             period_end=self.period_end
         )
 
-        # Рассчитываем оценки по новому алгоритму
+        # Рассчитываем оценки
         manager_scores = self.calculate_relative_scores(period_evaluations)
 
         # Возвращаем оценку для текущего менеджера
@@ -137,8 +137,7 @@ class ManagerEvaluation(models.Model):
     @classmethod
     def calculate_relative_scores(cls, evaluations):
         """
-        Рассчитывает оценки по новому алгоритму
-        evaluations - QuerySet оценок за определенный период
+        рассчитываем оценки
         """
         if not evaluations.exists():
             return {}
@@ -153,8 +152,7 @@ class ManagerEvaluation(models.Model):
         # Инициализируем структуры данных
         for criterion in criteria:
             criteria_data[criterion.id] = {
-                'significance': criterion.significance,
-                'normalized_weight': criterion.normalized_weight,
+                'normalized_weight': criterion.weight,
                 'manager_scores': {}
             }
 
