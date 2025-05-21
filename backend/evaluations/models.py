@@ -29,13 +29,6 @@ class EvaluationCriteria(models.Model):
     description = models.TextField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
 
-    class Meta: #проверка, что сумма весов в диапазоне 0-1, но на уровне бд
-        constraints = [
-            models.CheckConstraint(
-                check=models.Q(weight__gte=0) & models.Q(weight__lte=1),
-                name='weight_range'
-            )
-        ]
 
     def clean(self):
         if self.weight < 0 or self.weight > 1:
