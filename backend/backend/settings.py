@@ -146,3 +146,19 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 SECURE_BROWSER_XSS_FILTER = True  # Включает XSS-фильтр в браузере
 SECURE_CONTENT_TYPE_NOSNIFF = True  # Запрещает MIME-sniffing
+
+LOGGING = {
+    'handlers': {
+        'security': {
+            'level': 'WARNING',
+            'class': 'logging.FileHandler',
+            'filename': '/var/log/django/security.log',
+        },
+    },
+    'loggers': {
+        'django.security.*': {
+            'handlers': ['security'],
+            'level': 'WARNING',
+        },
+    },
+}
