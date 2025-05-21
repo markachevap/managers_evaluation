@@ -28,19 +28,6 @@ class EvaluationCriteria(models.Model):
     weight = models.FloatField(default=0.0)  # Поле для веса
     description = models.TextField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
-    significance = models.FloatField(
-        _('Значимость фактора'),
-        default=1.0,
-        help_text=_('Значимость фактора для расчета общей оценки')
-    )
-
-    @property
-    def normalized_weight(self):
-        """Возвращает нормализованный вес критерия"""
-        total_significance = EvaluationCriteria.objects.filter(
-            is_active=True
-        ).aggregate(total=models.Sum('significance'))['total'] or 0
-        return self.significance / total_significance if total_significance else 0
 
     class Meta:
         constraints = [
