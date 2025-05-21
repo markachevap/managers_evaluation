@@ -42,14 +42,6 @@ class EvaluationCriteria(models.Model):
         ).aggregate(total=models.Sum('significance'))['total'] or 0
         return self.significance / total_significance if total_significance else 0
 
-    class Meta:
-        constraints = [
-            models.CheckConstraint(
-                check=models.Q(weight__gte=0) & models.Q(weight__lte=1),
-                name='weight_range'
-            )
-        ]
-
     def clean(self):
         if self.weight < 0 or self.weight > 1:
             raise ValidationError("Вес должен быть от 0 до 1")
