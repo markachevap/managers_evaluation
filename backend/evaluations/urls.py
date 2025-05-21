@@ -10,12 +10,6 @@ from .views import (
 app_name = 'evaluations'
 
 urlpatterns = [
-    # Управление критериями оценки
-    path('criteria/', EvaluationCriteriaListView.as_view(), name='criteria-list'),
-    path('criteria/create/', EvaluationCriteriaCreateView.as_view(), name='criteria-create'),
-    path('criteria/<int:pk>/update/', EvaluationCriteriaUpdateView.as_view(), name='criteria-update'),
-    path('criteria/<int:pk>/delete/', EvaluationCriteriaDeleteView.as_view(), name='criteria-delete'),
-
     # Управление оценками
     path('', EvaluationListView.as_view(), name='evaluation-list'),
     path('create/', EvaluationCreateView.as_view(), name='evaluation-create'),
