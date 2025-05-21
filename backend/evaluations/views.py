@@ -115,35 +115,6 @@ class ManagerRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
         return self.request.user.system_role == User.SYSTEM_MANAGER
 
 
-class EvaluationCriteriaListView(LeaderRequiredMixin, ListView):
-    model = EvaluationCriteria
-    template_name = 'evaluations/criteria_list.html'
-    context_object_name = 'criterias'
-
-
-class EvaluationCriteriaCreateView(CreateView):
-    model = EvaluationCriteria
-    form_class = EvaluationCriteriaForm
-    template_name = 'evaluations/criteria_form.html'
-    success_url = reverse_lazy('evaluations:criteria-list')
-
-
-class EvaluationCriteriaUpdateView(UpdateView):
-    model = EvaluationCriteria
-    fields = ['weight']
-    template_name = 'evaluations/criteria_form.html'
-    success_url = reverse_lazy('criteria-list')
-
-    def get_queryset(self):
-        return EvaluationCriteria.objects.filter(is_active=True)
-
-
-
-class EvaluationCriteriaDeleteView(LeaderRequiredMixin, DeleteView):
-    model = EvaluationCriteria
-    template_name = 'evaluations/criteria_confirm_delete.html'
-    success_url = reverse_lazy('criteria-list')
-
 
 class EvaluationCreateView(LeaderRequiredMixin, CreateView):
     model = ManagerEvaluation
@@ -252,7 +223,7 @@ class EvaluationListView(LeaderRequiredMixin, ListView):
     model = ManagerEvaluation
     template_name = 'evaluations/evaluation_list.html'
     context_object_name = 'evaluations'
-    paginate_by = 10
+    paginate_by = 20
 
     def get_queryset(self):
         return ManagerEvaluation.objects.all().order_by('-evaluation_date')
