@@ -208,7 +208,7 @@ class EvaluationScore(models.Model):
 
     def weighted_score(self):
         """Возвращает взвешенную оценку"""
-        return round(self.value * self.criteria.weight, 2)
+        return round(self.value * self.criteria.weight, 5)
 
     weighted_score.short_description = _('Взвешенная оценка')
 
