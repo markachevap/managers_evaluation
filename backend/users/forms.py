@@ -181,3 +181,41 @@ class UserProfileForm(forms.ModelForm):
         if User.objects.exclude(pk=self.instance.pk).filter(email=email).exists():
             raise forms.ValidationError("Пользователь с таким email уже существует")
         return email
+
+
+class UserUpdateForm(forms.ModelForm):
+    password = forms.CharField(
+        widget=forms.PasswordInput,
+        label=_("Новый пароль"),
+        required=False
+    )
+    password_confirmation = forms.CharField(
+        widget=forms.PasswordInput,
+        label=_("Подтверждение пароля"),
+        required=False
+    )
+
+    class Meta:
+        model = User
+        fields = ['username', 'first_name', 'last_name', 'email',
+                  'hire_date', 'position', 'password', 'password_confirmation']
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get('password')
+        password_confirmation = cleaned_data.get('password_confirmation')
+
+        if password or password_confirmation:
+            if password != password_confirmation:
+                raise forms.ValidationError("Пароли не совпадают")
+
+        return cleaned_data
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        password = self.cleaned_data.get("password")
+        if password:
+            user.set_password(password)
+        if commit:
+            user.save()
+        return user
