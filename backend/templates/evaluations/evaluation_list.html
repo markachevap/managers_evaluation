@@ -1,5 +1,5 @@
 {% extends "base/base.html" %}
-{% load static humanize %}
+{% load static humanize custom_filters %}
 
 {% block content %}
 <div class="container-fluid py-4">
@@ -84,9 +84,9 @@
                             </td>
                             <td>
                                 <div class="progress" style="height: 20px;">
-                                    <div class="progress-bar bg-{% if evaluation.total_score >= 7 %}success{% elif evaluation.total_score >= 4 %}warning{% else %}danger{% endif %}"
-                                         style="width: {{ evaluation.total_score }}%">
-                                        {{ evaluation.total_score|floatformat:1 }}
+                                    <div class="progress-bar bg-{% if evaluation.total_score >= 1 %}success{% elif evaluation.total_score >= 0.1 %}warning{% else %}danger{% endif %}"
+                                         style="width: {{ evaluation.total_score|multiply:100|floatformat:0 }}%">
+                                        {{ evaluation.total_score|floatformat:2 }}
                                     </div>
                                 </div>
                             </td>
