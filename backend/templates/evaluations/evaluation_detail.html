@@ -1,5 +1,5 @@
 {% extends "base/base.html" %}
-{% load static humanize %}
+{% load static humanize custom_filters%}
 
 {% block content %}
 <div class="container-fluid py-4">
@@ -71,7 +71,7 @@
                                 <th width="30%">Критерий</th>
                                 <th width="20%">Оценка</th>
                                 <th width="15%">Вес</th>
-                                <th width="15%">Вклад</th>
+<!--                                <th width="15%">Вклад</th>-->
                                 <th width="20%">Комментарий</th>
                             </tr>
                         </thead>
@@ -85,13 +85,13 @@
                                 <td>
                                     <div class="progress" style="height: 20px;">
                                         <div class="progress-bar bg-{% if score.value >= 7 %}success{% elif score.value >= 4 %}warning{% else %}danger{% endif %}"
-                                             style="width: {{ score.value }}%">
+                                             style="width: {{ score.value|multiply:10|floatformat:0 }}%">
                                             {{ score.value|floatformat:1 }}
                                         </div>
                                     </div>
                                 </td>
                                 <td>{{ score.criteria.weight|floatformat:2 }}</td>
-                                <td>{{ score.weighted_score|floatformat:2 }}</td>
+<!--                                <td>{{ score.weighted_score|floatformat:2 }}</td>-->
                                 <td>
                                     {% if score.comment %}
                                     <button class="btn btn-sm btn-outline-info"
