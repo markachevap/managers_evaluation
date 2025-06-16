@@ -43,19 +43,15 @@ class LeaderAnalyticsView(LoginRequiredMixin, UserPassesTestMixin, TemplateView)
         # Получаем всех менеджеров с системной ролью SYSTEM_MANAGER
         managers = User.objects.filter(system_role=User.SYSTEM_MANAGER)
 
-        # Аннотируем менеджеров последней оценкой, используя Subquery и Coalesce
+        # Найдём ID последних оценок
+        latest_evaluations_subquery = ManagerEvaluation.objects.filter(
+            manager=OuterRef('pk')
+        ).order_by('-evaluation_date').values('total_score')[:1]
+
         managers = managers.annotate(
             last_score=Coalesce(
-                Subquery(
-                    last_evaluations.filter(manager=OuterRef('pk')).annotate(
-                        calculated_score=Sum(
-                            F('scores__value') * F('scores__criteria__weight'),
-                            output_field=FloatField()
-                        )
-                    ).values('calculated_score')[:1]
-                ),
-                0.0,
-                output_field=FloatField()
+                Subquery(latest_evaluations_subquery),
+                0.0
             )
         )
 
@@ -188,10 +184,11 @@ class ManagerAnalyticsView(LoginRequiredMixin, UserPassesTestMixin, TemplateView
 
         sorted_scores = sorted(manager_scores.items(), key=lambda item: item[1], reverse=True)
         rank_position = 0
-        for i, (manager_id, score) in enumerate(sorted_scores):
-          if manager_id == int(manager_id):
-            rank_position = i + 1
-            break
+        actual_manager_id = int(self.kwargs.get('manager_id'))
+        for i, (m_id, score) in enumerate(sorted_scores):
+            if m_id == actual_manager_id:
+                rank_position = i + 1
+                break
         context['rank_position'] = rank_position
         context['total_managers'] = all_managers.count()
 
