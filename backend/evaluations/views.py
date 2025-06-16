@@ -186,7 +186,7 @@ class EvaluationCreateView(LeaderRequiredMixin, CreateView):
             return self.render_to_response(self.get_context_data(form=form))
 
     def get_success_url(self):
-        return reverse_lazy('evaluation-detail', kwargs={'pk': self.object.pk})
+        return reverse_lazy('evaluation-list')
 
 
 class EvaluationUpdateView(LeaderRequiredMixin, UpdateView):
