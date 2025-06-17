@@ -166,7 +166,7 @@
                 </div>
                 <div class="card-body">
                     <div class="chart-bar">
-                        <canvas id="criteriaChart" height="300"></canvas>
+                        <canvas id="criteriaChart" height="100"></canvas>
                     </div>
                     <div class="mt-4">
                         <h6 class="font-weight-bold">Ключевые выводы:</h6>
@@ -185,19 +185,19 @@
         </div>
     </div>
 
-    <!-- Дополнительные графики -->
-    <div class="col-md-12">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3 bg-white">
-                    <h6 class="m-0 font-weight-bold text-primary">Динамика оценок по месяцам</h6>
-                </div>
-                <div class="card-body">
-                    <div class="chart-area">
-                        <canvas id="performanceTrendChart" height="100"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
+<!--    &lt;!&ndash; Дополнительные графики &ndash;&gt;-->
+<!--    <div class="col-md-12">-->
+<!--            <div class="card shadow mb-4">-->
+<!--                <div class="card-header py-3 bg-white">-->
+<!--                    <h6 class="m-0 font-weight-bold text-primary">Динамика оценок по месяцам</h6>-->
+<!--                </div>-->
+<!--                <div class="card-body">-->
+<!--                    <div class="chart-area">-->
+<!--                        <canvas id="performanceTrendChart" height="100"></canvas>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
 </div>
 {% endblock %}
 
@@ -205,37 +205,37 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // График тренда производительности
-        const trendCtx = document.getElementById('performanceTrendChart');
-        new Chart(trendCtx, {
-            type: 'line',
-            data: {
-                labels: {{ chart_data.labels|safe }},
-                datasets: [{
-                    label: 'Средняя оценка команды',
-                    data: {{ chart_data.data|safe }},
-                    borderColor: '#4e73df',
-                    backgroundColor: 'rgba(78, 115, 223, 0.05)',
-                    borderWidth: 2,
-                    tension: 0.3,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 10
-                    }
-                }
-            }
-        });
+<!--        // График тренда производительности-->
+<!--        const trendCtx = document.getElementById('performanceTrendChart');-->
+<!--        new Chart(trendCtx, {-->
+<!--            type: 'line',-->
+<!--            data: {-->
+<!--                labels: {{ chart_data.labels|safe }},-->
+<!--                datasets: [{-->
+<!--                    label: 'Средняя оценка команды',-->
+<!--                    data: {{ chart_data.datasets|safe }},-->
+<!--                    borderColor: '#4e73df',-->
+<!--                    backgroundColor: 'rgba(78, 115, 223, 0.05)',-->
+<!--                    borderWidth: 2,-->
+<!--                    tension: 0.3,-->
+<!--                    fill: true-->
+<!--                }]-->
+<!--            },-->
+<!--            options: {-->
+<!--                responsive: true,-->
+<!--                plugins: {-->
+<!--                    legend: {-->
+<!--                        position: 'top',-->
+<!--                    }-->
+<!--                },-->
+<!--                scales: {-->
+<!--                    y: {-->
+<!--                        beginAtZero: true,-->
+<!--                        max: 10-->
+<!--                    }-->
+<!--                }-->
+<!--            }-->
+<!--        });-->
 
          // График средних оценок по критериям
         const ctx = document.getElementById('criteriaChart');
@@ -251,7 +251,7 @@
                     label: 'Средняя оценка',
                     data: [
                         {% for stat in criteria_stats_with_hsl %}
-                        {{ stat.avg_score|floatformat:2 }}{% if not forloop.last %},{% endif %}
+                        {{ stat.avg_score }}{% if not forloop.last %},{% endif %}
                         {% endfor %}
                     ],
                     backgroundColor: [

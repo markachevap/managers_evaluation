@@ -180,9 +180,9 @@
         // Применение выбора менеджеров
         document.getElementById('applyComparison').addEventListener('click', function() {
             const selected = [...document.querySelectorAll('input[type="checkbox"]:checked')]
-                .map(x => x.value)
-                .join(',');
-            window.location.href = `?managers=${selected}`;
+                .map(x => `managers=${x.value}`)
+                .join('&');
+            window.location.href = `?${selected}`;
         });
     });
 </script>
