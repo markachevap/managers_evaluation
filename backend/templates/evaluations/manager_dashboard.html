@@ -1,5 +1,5 @@
 {% extends "base/base.html" %}
-{% load static humanize %}
+{% load static humanize custom_filters%}
 
 {% block content %}
 <div class="container-fluid py-4">
@@ -13,50 +13,53 @@
     </div>
 
     <div class="row">
-        <!-- Карточка с графиком -->
+        <!-- Карточка с оценками по критериям -->
         <div class="col-lg-8 mb-4">
             <div class="card shadow h-100">
-                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <div class="card-header bg-white py-3">
                     <h6 class="m-0 font-weight-bold text-primary">
-                        <i class="fas fa-chart-line me-1"></i> Динамика оценок
+                        <i class="fas fa-tasks me-2"></i>Оценки по критериям ({{ last_evaluation.evaluation_date|date:"d.m.Y" }})
                     </h6>
-                    <div class="dropdown no-arrow">
-                        <a class="dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
-                        </a>
-                        <div class="dropdown-menu dropdown-menu-end shadow">
-                            <a class="dropdown-item" href="#">Экспорт в PDF</a>
-                            <a class="dropdown-item" href="#">Поделиться</a>
-                        </div>
-                    </div>
                 </div>
-                <div class="card-body">
-                    <canvas
-                        id="scoreChart"
-                        data-chart='{
-                            "type": "line",
-                            "data": {
-                                "labels": {{ evaluation_dates|safe }},
-                                "datasets": [{
-                                    "label": "Ваши оценки",
-                                    "data": {{ evaluation_scores|safe }},
-                                    "borderColor": "#4e73df",
-                                    "backgroundColor": "rgba(78, 115, 223, 0.05)",
-                                    "borderWidth": 2,
-                                    "pointRadius": 3,
-                                    "pointBackgroundColor": "#4e73df",
-                                    "tension": 0.3,
-                                    "fill": true
-                                }]
-                            },
-                            "options": {
-                                "scales": {
-                                    "y": {"beginAtZero": true, "max": 10}
-                                }
-                            }
-                        }'
-                        height="300">
-                    </canvas>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>Критерий</th>
+                                <th>Оценка</th>
+                                <th>Комментарий</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for score in scores %}
+                            <tr>
+                                <td>
+                                    <strong>{{ score.criteria.name }}</strong><br>
+                                    <small class="text-muted">{{ score.criteria.description|truncatechars:30 }}</small>
+                                </td>
+                                <td>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-{% if score.value >= 7 %}success{% elif score.value >= 4 %}warning{% else %}danger{% endif %}"
+                                             style="width: {{ score.value|multiply:10|floatformat:0 }}%">
+                                            {{ score.value|floatformat:1 }}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if score.comment %}
+                                    <button class="btn btn-sm btn-outline-info"
+                                            data-bs-toggle="tooltip"
+                                            title="{{ score.comment }}">
+                                        <i class="fas fa-comment"></i>
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-active">
+                        </tfoot>
+                    </table>
                 </div>
             </div>
         </div>
@@ -71,6 +74,7 @@
                 </div>
                 <div class="card-body">
                     <div class="row">
+                        <!-- Изменение оценки -->
                         <div class="col-12 mb-4">
                             <div class="card border-left-{% if score_diff >= 0 %}success{% else %}danger{% endif %} shadow h-100">
                                 <div class="card-body">
@@ -91,7 +95,8 @@
                             </div>
                         </div>
 
-                        <div class="col-12">
+                        <!-- Позиция в рейтинге -->
+                        <div class="col-12 mb-4">
                             <div class="card border-left-info shadow h-100">
                                 <div class="card-body">
                                     <div class="d-flex align-items-center">
@@ -110,10 +115,33 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Итоговый балл -->
+                        <div class="col-12">
+                            <div class="card border-left-success shadow h-100">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-3">
+                                            <i class="fas fa-star fa-2x text-success"></i>
+                                        </div>
+                                        <div>
+                                            <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                                Общий балл
+                                            </div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                {{ last_evaluation.total_score|floatformat:2 }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>
         </div>
+
     </div>
 </div>
 {% endblock %}
