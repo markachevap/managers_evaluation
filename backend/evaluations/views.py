@@ -186,7 +186,7 @@ class EvaluationCreateView(LeaderRequiredMixin, CreateView):
             return self.render_to_response(self.get_context_data(form=form))
 
     def get_success_url(self):
-        return reverse_lazy('evaluation-list')
+        return reverse_lazy('evaluations:evaluation-list')
 
 
 class EvaluationUpdateView(LeaderRequiredMixin, UpdateView):
@@ -300,6 +300,11 @@ class ManagerDashboardView(ManagerRequiredMixin, TemplateView):
             if u.id == user.id:
                 context['rank'] = rank
                 break
+
+        if evaluations.exists():
+            last_evaluation = evaluations.first()
+            context['last_evaluation'] = last_evaluation
+            context['scores'] = last_evaluation.scores.select_related('criteria').all()
 
         context['evaluations'] = evaluations
         context['user'] = user
