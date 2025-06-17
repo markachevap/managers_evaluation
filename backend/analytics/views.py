@@ -232,7 +232,7 @@ class ComparisonAnalyticsView(LoginRequiredMixin, UserPassesTestMixin, TemplateV
     template_name = 'analytics/comparison_analytics.html'
 
     def test_func(self):
-        return self.request.user.system_role == User.SYSTEM_LEADER  
+        return self.request.user.system_role == User.SYSTEM_LEADER
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         manager_ids = self.request.GET.getlist('managers')
