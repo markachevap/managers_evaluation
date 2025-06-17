@@ -30,7 +30,13 @@
                     <i class="bi bi-clipboard-data display-4 text-success mb-3"></i>
                     <h3>{% if user.system_role == 'system_leader' %}Оценки{% else %}Мои оценки{% endif %}</h3>
                     <p>Просмотр и анализ оценок</p>
-                    <a href="{% url 'evaluations:evaluation-list' %}" class="btn btn-success stretched-link">Перейти</a>
+                    <a href="
+                {% if user.system_role == 'system_leader' %}
+                    {% url 'evaluations:evaluation-list' %}
+                {% else %}
+                    {% url 'evaluations:manager-dashboard' %}
+                {% endif %}
+            " class="btn btn-success stretched-link">Перейти</a>
                 </div>
             </div>
         </div>
@@ -42,7 +48,7 @@
                     <h3>Аналитика</h3>
                     <p>Детальная статистика и отчеты</p>
                     <a href="
-                {% if user.system_role == 'SYSTEM_LEADER' %}
+                {% if user.system_role == 'system_leader' %}
                     {% url 'analytics:leader-analytics' %}
                 {% else %}
                     {% url 'analytics:current-manager-analytics' %}
