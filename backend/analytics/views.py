@@ -6,6 +6,7 @@ from django.db.models import Subquery, OuterRef, Avg, FloatField, Q, Sum, F
 from django.db.models.functions import Coalesce
 from django.db import models
 from django.shortcuts import get_object_or_404
+from django.shortcuts import redirect
 from datetime import date, timedelta
 from django.http import HttpResponse
 
@@ -142,9 +143,15 @@ class ManagerAnalyticsView(LoginRequiredMixin, UserPassesTestMixin, TemplateView
     template_name = 'analytics/manager_analytics.html'
 
     def test_func(self):
-        # Проверка, является ли пользователь SYSTEM_LEADER или пытается просмотреть свой собственный профиль
         manager_id = self.kwargs.get('manager_id')
-        return self.request.user.system_role == User.SYSTEM_LEADER or self.request.user.id == int(manager_id)
+        user = self.request.user
+
+        # Лидеры могут смотреть любого менеджера
+        if user.system_role == User.SYSTEM_LEADER:
+            return True
+
+        # Менеджеры - только свою страницу
+        return user.system_role == User.SYSTEM_MANAGER and user.id == manager_id
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -209,6 +216,15 @@ class ManagerAnalyticsView(LoginRequiredMixin, UserPassesTestMixin, TemplateView
           if last_score and last_score.value < 5:
             suggestions.append(f"Уделите больше внимания критерию '{criterion.name}'.")
         return {'suggestions': suggestions}
+
+
+class CurrentManagerAnalyticsView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
+    def test_func(self):
+        return self.request.user.system_role == User.SYSTEM_MANAGER
+
+    def get(self, request, *args, **kwargs):
+        return redirect('analytics:manager-analytics', manager_id=request.user.id)
+
 
 
 class ComparisonAnalyticsView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):

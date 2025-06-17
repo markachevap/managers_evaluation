@@ -41,7 +41,13 @@
                     <i class="bi bi-graph-up display-4 text-info mb-3"></i>
                     <h3>Аналитика</h3>
                     <p>Детальная статистика и отчеты</p>
-                    <a href="{% url 'analytics:leader-analytics' %}" class="btn btn-info stretched-link">Перейти</a>
+                    <a href="
+                {% if user.system_role == 'SYSTEM_LEADER' %}
+                    {% url 'analytics:leader-analytics' %}
+                {% else %}
+                    {% url 'analytics:current-manager-analytics' %}
+                {% endif %}
+            " class="btn btn-info stretched-link">Перейти</a>
                 </div>
             </div>
         </div>
