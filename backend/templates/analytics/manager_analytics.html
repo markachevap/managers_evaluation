@@ -4,7 +4,7 @@
 {% block content %}
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0 text-gray-800">Ваша персональная аналитика</h1>
+        <h1 class="h3 mb-0 text-gray-800">Персональная аналитика</h1>
         <div class="badge bg-primary text-white p-2">
             {% now "F Y" %}
         </div>
@@ -15,14 +15,14 @@
         <div class="col-lg-8 mb-4">
             <div class="card shadow h-100">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center bg-white">
-                    <h6 class="m-0 font-weight-bold text-primary">Динамика ваших оценок</h6>
+                    <h6 class="m-0 font-weight-bold text-primary">Динамика оценок</h6>
 
 
 
                 </div>
                 <div class="card-body">
                     <div class="chart-area">
-                        <canvas id="progressChart" height="300"></canvas>
+                        <canvas id="progressChart" height="100"></canvas>
                     </div>
                 </div>
             </div>
@@ -179,7 +179,7 @@
                 scales: {
                     y: {
                         beginAtZero: true,
-                        max: 10,
+                        max: 1,
                         ticks: {
                             stepSize: 1
                         }

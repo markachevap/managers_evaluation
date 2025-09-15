@@ -2,7 +2,7 @@ from django.views.generic import ListView, CreateView, UpdateView, DeleteView, D
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.urls import reverse_lazy
 from .models import User, CustomRole
-from .forms import UserCreateForm, CustomRoleForm, AssignRoleForm, RegisterForm, UserProfileForm
+from .forms import UserCreateForm, CustomRoleForm, AssignRoleForm, RegisterForm, UserProfileForm, UserUpdateForm
 from evaluations.models import ManagerEvaluation
 from django.contrib.auth.views import LoginView
 from .forms import EmailAuthForm
@@ -67,7 +67,7 @@ class UserCreateView(LeaderRequiredMixin, CreateView):
 
 class UserUpdateView(LeaderRequiredMixin, UpdateView):
     model = User
-    form_class = UserCreateForm
+    form_class = UserUpdateForm
     template_name = 'users/user_form.html'
     success_url = reverse_lazy('users:user-list')
 

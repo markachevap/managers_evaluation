@@ -6,6 +6,7 @@ from django.db.models import Subquery, OuterRef, Avg, FloatField, Q, Sum, F
 from django.db.models.functions import Coalesce
 from django.db import models
 from django.shortcuts import get_object_or_404
+from django.shortcuts import redirect
 from datetime import date, timedelta
 from django.http import HttpResponse
 
@@ -43,19 +44,15 @@ class LeaderAnalyticsView(LoginRequiredMixin, UserPassesTestMixin, TemplateView)
         # Получаем всех менеджеров с системной ролью SYSTEM_MANAGER
         managers = User.objects.filter(system_role=User.SYSTEM_MANAGER)
 
-        # Аннотируем менеджеров последней оценкой, используя Subquery и Coalesce
+        # Найдём ID последних оценок
+        latest_evaluations_subquery = ManagerEvaluation.objects.filter(
+            manager=OuterRef('pk')
+        ).order_by('-evaluation_date').values('total_score')[:1]
+
         managers = managers.annotate(
             last_score=Coalesce(
-                Subquery(
-                    last_evaluations.filter(manager=OuterRef('pk')).annotate(
-                        calculated_score=Sum(
-                            F('scores__value') * F('scores__criteria__weight'),
-                            output_field=FloatField()
-                        )
-                    ).values('calculated_score')[:1]
-                ),
-                0.0,
-                output_field=FloatField()
+                Subquery(latest_evaluations_subquery),
+                0.0
             )
         )
 
@@ -99,7 +96,7 @@ class LeaderAnalyticsView(LoginRequiredMixin, UserPassesTestMixin, TemplateView)
             dataset = {
                 'label': criteria.get_criteria_type_display(),
                 'data': [
-                    float(EvaluationScore.objects.filter(criteria=criteria, evaluation=e).aggregate(Avg('value'))['avg'] or 0)
+                    float(EvaluationScore.objects.filter(criteria=criteria, evaluation=e).aggregate(avg=Avg('value'))['avg'] or 0)
                     for e in all_evaluations
                 ],
                 'borderColor': '#4CAF50',
@@ -146,9 +143,15 @@ class ManagerAnalyticsView(LoginRequiredMixin, UserPassesTestMixin, TemplateView
     template_name = 'analytics/manager_analytics.html'
 
     def test_func(self):
-        # Проверка, является ли пользователь SYSTEM_LEADER или пытается просмотреть свой собственный профиль
         manager_id = self.kwargs.get('manager_id')
-        return self.request.user.system_role == User.SYSTEM_LEADER or self.request.user.id == int(manager_id)
+        user = self.request.user
+
+        # Лидеры могут смотреть любого менеджера
+        if user.system_role == User.SYSTEM_LEADER:
+            return True
+
+        # Менеджеры - только свою страницу
+        return user.system_role == User.SYSTEM_MANAGER and user.id == manager_id
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -188,10 +191,11 @@ class ManagerAnalyticsView(LoginRequiredMixin, UserPassesTestMixin, TemplateView
 
         sorted_scores = sorted(manager_scores.items(), key=lambda item: item[1], reverse=True)
         rank_position = 0
-        for i, (manager_id, score) in enumerate(sorted_scores):
-          if manager_id == int(manager_id):
-            rank_position = i + 1
-            break
+        actual_manager_id = int(self.kwargs.get('manager_id'))
+        for i, (m_id, score) in enumerate(sorted_scores):
+            if m_id == actual_manager_id:
+                rank_position = i + 1
+                break
         context['rank_position'] = rank_position
         context['total_managers'] = all_managers.count()
 
@@ -214,12 +218,21 @@ class ManagerAnalyticsView(LoginRequiredMixin, UserPassesTestMixin, TemplateView
         return {'suggestions': suggestions}
 
 
+class CurrentManagerAnalyticsView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
+    def test_func(self):
+        return self.request.user.system_role == User.SYSTEM_MANAGER
+
+    def get(self, request, *args, **kwargs):
+        return redirect('analytics:manager-analytics', manager_id=request.user.id)
+
+
+
 class ComparisonAnalyticsView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
     """Углубленное сравнение менеджеров"""
     template_name = 'analytics/comparison_analytics.html'
 
     def test_func(self):
-        return self.request.user.system_role == User.SYSTEM_LEADER  
+        return self.request.user.system_role == User.SYSTEM_LEADER
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         manager_ids = self.request.GET.getlist('managers')
